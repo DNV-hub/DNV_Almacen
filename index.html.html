@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Almacén – Control de Materiales | Talud</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
+:root{
+  --blue:#1e3a5f;--blue-mid:#2563a8;--blue-light:#dbeafe;
+  --green:#166534;--green-bg:#dcfce7;
+  --red:#dc2626;--red-dark:#991b1b;--red-bg:#fee2e2;
+  --amber:#92400e;--amber-bg:#fef3c7;
+  --gray:#374151;--gray2:#6b7280;--gray-light:#f9fafb;
+  --border:#e5e7eb;--radius:10px
+}
+.app{max-width:500px;margin:0 auto;background:#fff;min-height:100vh;display:flex;flex-direction:column}
+.hdr{background:var(--blue);color:#fff;padding:16px 18px 14px}
+.hdr-row{display:flex;align-items:center;gap:10px}
+.hdr-icon{width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.hdr h1{font-size:16px;font-weight:700;line-height:1.2}
+.hdr p{font-size:11px;opacity:.7;margin-top:2px}
+.badge{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.18);color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;margin-left:auto;white-space:nowrap;cursor:pointer}
+.badge:hover{background:rgba(255,255,255,.28)}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff;border-bottom:1.5px solid var(--border);position:sticky;top:0;z-index:10}
+.tab{padding:11px 4px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;color:#9ca3af;transition:all .18s;text-transform:uppercase;letter-spacing:.4px}
+.tab.active-e{color:var(--blue-mid);border-color:var(--blue-mid);background:#f0f7ff}
+.tab.active-s{color:var(--red);border-color:var(--red);background:#fff5f5}
+.tab.active-r{color:var(--green);border-color:var(--green);background:#f0fdf4}
+.tab.active-k{color:#7c3aed;border-color:#7c3aed;background:#f5f3ff}
+.panel{padding:18px;display:flex;flex-direction:column}
+.panel.hidden{display:none}
+.slabel{font-size:10px;font-weight:700;color:#9ca3af;letter-spacing:.8px;text-transform:uppercase;margin-bottom:7px;margin-top:18px}
+.slabel:first-child{margin-top:0}
+.field{margin-bottom:13px}
+.field label{display:block;font-size:13px;font-weight:500;color:var(--gray);margin-bottom:4px}
+.req{color:var(--red);margin-left:1px}
+input[type=text],input[type=number],input[type=date],input[type=time],select,textarea{
+  width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);
+  font-size:14px;color:var(--gray);background:#fff;outline:none;transition:border .15s;
+  -webkit-appearance:none;font-family:inherit
+}
+input:focus,select:focus,textarea:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+input[readonly]{background:#f3f4f6;color:#9ca3af}
+input:disabled,select:disabled{background:#f3f4f6;color:#9ca3af;cursor:not-allowed;opacity:.7}
+textarea{resize:vertical;min-height:68px}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.mat-wrap{position:relative}
+.mat-wrap .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+.mat-wrap input{padding-left:34px}
+.mat-drop{max-height:210px;overflow-y:auto;border:1.5px solid var(--blue-mid);border-top:none;border-radius:0 0 var(--radius) var(--radius);background:#fff;display:none;position:absolute;width:100%;z-index:20;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.mat-drop.open{display:block}
+.mat-item{padding:9px 12px;cursor:pointer;border-bottom:1px solid #f3f4f6;transition:background .1s}
+.mat-item:hover{background:#f0f7ff}
+.mat-item:last-child{border-bottom:none}
+.mat-code{font-size:11px;color:var(--blue-mid);font-weight:700;font-family:monospace}
+.mat-name{font-size:13px;color:var(--gray);margin-top:1px}
+.mat-cat{font-size:11px;color:#9ca3af}
+.mat-sel{background:var(--blue-light);border:1.5px solid var(--blue-mid);border-radius:var(--radius);padding:9px 12px;display:none;align-items:center;gap:9px;margin-top:5px}
+.mat-sel.show{display:flex}
+.mat-badge{background:var(--blue-mid);color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;font-family:monospace;white-space:nowrap}
+.mat-info{flex:1;min-width:0}
+.mat-nm{font-size:13px;font-weight:500;color:var(--blue);line-height:1.3}
+.mat-un{font-size:11px;color:#6b7280;margin-top:1px}
+.clear-btn{background:none;border:none;color:#9ca3af;cursor:pointer;font-size:17px;padding:3px 6px;border-radius:4px;line-height:1}
+.clear-btn:hover{color:var(--red);background:var(--red-bg)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.err{font-size:11px;color:var(--red);margin-top:3px;display:none}
+.err.show{display:block}
+.ferr{border-color:var(--red)!important;background:#fff8f8!important}
+.btn{width:100%;padding:13px;color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
+.btn-e{background:var(--blue-mid)}.btn-e:hover{background:var(--blue);transform:translateY(-1px)}
+.btn-s{background:var(--red)}.btn-s:hover{background:var(--red-dark);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)!important}
+.note{font-size:11px;color:#9ca3af;text-align:center;margin-top:8px}
+.reg-hdr{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.reg-hdr h2{font-size:15px;font-weight:700;color:var(--gray);flex:1}
+.btn-exp{padding:7px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+.btn-exp:hover{opacity:.88}
+.empty{text-align:center;padding:32px 0;color:#9ca3af;font-size:14px;line-height:1.8}
+.reg-card{border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;margin-bottom:9px;background:#fff}
+.reg-card.E{border-left:4px solid var(--blue-mid)}
+.reg-card.S{border-left:4px solid var(--red)}
+.reg-top{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.reg-tipo{font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;letter-spacing:.5px}
+.reg-tipo.E{background:var(--blue-light);color:var(--blue-mid)}
+.reg-tipo.S{background:var(--red-bg);color:var(--red)}
+.reg-fecha{font-size:11px;color:#9ca3af;margin-left:auto}
+.reg-mat{font-size:13px;font-weight:600;color:var(--gray);margin-bottom:3px}
+.reg-cod{font-size:11px;color:var(--blue-mid);font-family:monospace;margin-right:6px}
+.reg-details{font-size:11px;color:#6b7280;line-height:1.8}
+.reg-details b{color:var(--gray);font-weight:600}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:26px 22px;width:100%;max-width:360px;text-align:center}
+.modal-ico{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px}
+.modal-ico.e{background:var(--blue-light)}
+.modal-ico.s{background:var(--red-bg)}
+.modal h2{font-size:17px;font-weight:700;color:var(--gray);margin-bottom:6px}
+.modal p{font-size:13px;color:#6b7280;margin-bottom:16px;line-height:1.6}
+.sumbox{background:#f9fafb;border-radius:var(--radius);padding:11px;text-align:left;margin-bottom:18px;font-size:12px;line-height:1.85;color:var(--gray)}
+.sumbox b{font-weight:600}
+.btn-nuevo{width:100%;padding:12px;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;border:2px solid var(--blue-mid);color:var(--blue-mid);background:#fff;margin-bottom:9px;transition:all .15s}
+.btn-nuevo:hover{background:var(--blue-light)}
+.aprov-box{display:flex;align-items:flex-start;gap:11px;background:#fffbeb;border:1.5px solid #f59e0b;border-radius:var(--radius);padding:12px 14px;margin-bottom:14px}
+.aprov-icon{font-size:22px;flex-shrink:0;margin-top:1px}
+.aprov-txt{font-size:12px;color:#78350f;line-height:1.7}
+.aprov-txt b{font-weight:700;color:#92400e}
+.vale-ok{display:flex;align-items:center;gap:8px;background:#dcfce7;border:1.5px solid #16a34a;border-radius:var(--radius);padding:10px 13px;font-size:12px;font-weight:600;color:#166534;margin-top:6px;margin-bottom:4px}
+.vale-ok.hidden{display:none}
+.otro-mat-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;background:#fff;border:1.5px dashed #9ca3af;border-radius:var(--radius);font-size:12px;font-weight:600;color:#6b7280;cursor:pointer;transition:all .15s;margin-top:-6px}
+.otro-mat-btn:hover{border-color:var(--amber);color:var(--amber);background:#fffbeb}
+.otro-mat-cancel{font-size:12px;color:#dc2626;cursor:pointer;padding:6px 0;font-weight:500}
+.otro-mat-cancel:hover{text-decoration:underline}
+.xor-box{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}
+.xor-col{flex:1;min-width:0}
+.xor-col input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--gray);background:#fff;outline:none;transition:border .15s}
+.xor-col input:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+.xor-col input:disabled{background:#f3f4f6;color:#9ca3af;cursor:not-allowed;border-style:dashed}
+.xor-label{display:block;font-size:12px;font-weight:600;color:var(--gray);margin-bottom:5px}
+.xor-label.dim{color:#9ca3af}
+.xor-sep{font-size:12px;font-weight:700;color:#9ca3af;margin-top:30px;flex-shrink:0}
+.xor-origen-box{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}
+.xor-origen-col{flex:1;min-width:0}
+.xor-origen-col select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;color:var(--gray);background:#fff;outline:none;transition:border .15s;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239ca3af' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.xor-origen-col select:disabled{background-color:#f3f4f6;color:#9ca3af;cursor:not-allowed;border-style:dashed}
+.xor-origen-col select:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+.xor-label.dim{color:#9ca3af}
+.cascade-hint{font-size:11px;color:#9ca3af;margin-top:3px;font-style:italic}
+.stock-summary{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px}
+.stock-card{background:#f9fafb;border:1.5px solid var(--border);border-radius:var(--radius);padding:10px 6px;text-align:center}
+.stock-card.ok{background:#f0fdf4;border-color:#86efac}
+.stock-card.bajo{background:#fffbeb;border-color:#fcd34d}
+.stock-card.sin{background:#fef2f2;border-color:#fca5a5}
+.stock-num{font-size:19px;font-weight:800;color:var(--gray)}
+.stock-card.ok .stock-num{color:#166534}
+.stock-card.bajo .stock-num{color:#92400e}
+.stock-card.sin .stock-num{color:#991b1b}
+.stock-lbl{font-size:9.5px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+#stkBuscar{width:100%}
+.stk-table{width:100%;border-collapse:collapse;font-size:12px}
+.stk-table th{text-align:left;padding:7px 8px;background:#f3f4f6;color:#6b7280;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0}
+.stk-table td{padding:7px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+.stk-table tr:last-child td{border-bottom:none}
+.stk-code{font-family:monospace;font-weight:700;color:var(--blue-mid);font-size:11px}
+.stk-name{color:var(--gray);font-size:11.5px}
+.stk-qty{font-weight:800;text-align:right;white-space:nowrap}
+.stk-pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-top:2px}
+.stk-pill.OK{background:var(--green-bg);color:var(--green)}
+.stk-pill.BAJO{background:var(--amber-bg);color:var(--amber)}
+.stk-pill.SIN{background:var(--red-bg);color:var(--red)}
+.stk-empty{text-align:center;padding:24px 0;color:#9ca3af;font-size:13px}
+.stk-conv{font-size:10px;color:#7c3aed;font-weight:600;margin-top:2px;white-space:nowrap}
+.stk-conv-factor{font-size:10px;color:#9ca3af;font-style:italic}
+.adj-row{display:grid;grid-template-columns:2.4fr 1fr 1fr;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:11.5px}
+.adj-row-conv{display:grid;grid-template-columns:2fr 0.8fr 1fr 0.8fr;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:11px}
+.conv-needs{background:#f5f3ff;border-left:3px solid #7c3aed}
+.conv-tag{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;background:#ede9fe;color:#6d28d9;margin-left:4px;white-space:nowrap}
+.adj-row input{padding:6px 8px;font-size:11.5px;border:1.5px solid var(--border);border-radius:6px}
+.adj-name{color:var(--gray);line-height:1.3}
+.adj-save{width:100%;margin-top:10px;padding:10px;background:var(--blue-mid);color:#fff;border:none;border-radius:var(--radius);font-weight:700;font-size:13px;cursor:pointer}
+.reg-del-btn{margin-left:auto;background:none;border:none;color:#d1d5db;cursor:pointer;font-size:15px;padding:3px 6px;border-radius:5px;line-height:1;transition:all .15s;flex-shrink:0}
+.reg-del-btn:hover{color:var(--red);background:var(--red-bg)}
+.modal-del .modal-ico{background:var(--red-bg)}
+.btn-del-confirm{width:100%;padding:12px;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;background:var(--red);color:#fff;border:none;margin-bottom:9px;transition:all .15s}
+.btn-del-confirm:hover{background:var(--red-dark)}
+.btn-del-cancel{width:100%;padding:11px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--gray);background:#fff;transition:all .15s}
+.btn-del-cancel:hover{background:#f3f4f6}
+.reg-num{font-size:10px;color:#9ca3af;margin-left:auto;margin-right:4px;font-family:monospace}
+
+/* ══ MULTI-ITEM ROWS ══════════════════════════════════════════ */
+.items-hdr{display:grid;grid-template-columns:2fr 1fr 1fr 32px;gap:6px;padding:4px 0 6px;border-bottom:2px solid var(--border);font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.4px}
+.item-row{display:grid;grid-template-columns:2fr 1fr 1fr 32px;gap:6px;align-items:start;padding:7px 0;border-bottom:1px solid #f3f4f6}
+.item-row:last-child{border-bottom:none}
+.item-mat-wrap{position:relative}
+.item-search{width:100%;padding:7px 10px 7px 28px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;color:var(--gray);background:#fff;outline:none;transition:border .15s}
+.item-search:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+.item-search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;pointer-events:none}
+.item-drop{max-height:180px;overflow-y:auto;border:1.5px solid var(--blue-mid);border-top:none;border-radius:0 0 8px 8px;background:#fff;display:none;position:absolute;width:100%;z-index:30;box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.item-drop.open{display:block}
+.item-drop-item{padding:7px 10px;cursor:pointer;border-bottom:1px solid #f3f4f6;transition:background .1s}
+.item-drop-item:hover{background:#f0f7ff}
+.item-drop-item:last-child{border-bottom:none}
+.item-drop-code{font-size:10px;color:var(--blue-mid);font-weight:700;font-family:monospace}
+.item-drop-name{font-size:11.5px;color:var(--gray)}
+.item-sel-badge{display:inline-flex;align-items:center;gap:5px;background:var(--blue-light);border:1.5px solid var(--blue-mid);border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer;width:100%;min-height:34px;word-break:break-word}
+.item-sel-badge .clr{margin-left:auto;flex-shrink:0;color:#9ca3af;font-size:13px}
+.item-sel-badge .clr:hover{color:var(--red)}
+.item-sel-badge .icode{font-family:monospace;font-weight:700;color:var(--blue-mid);font-size:10px;flex-shrink:0}
+.item-sel-badge .iname{font-size:10.5px;color:var(--blue);line-height:1.25}
+.item-cant{width:100%;padding:7px 8px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--gray);background:#fff;outline:none;transition:border .15s;text-align:center}
+.item-cant:focus{border-color:var(--blue-mid);box-shadow:0 0 0 3px rgba(37,99,168,.1)}
+.item-unit{font-size:10px;color:#6b7280;text-align:center;margin-top:2px;min-height:14px}
+.item-unit select{width:100%;padding:4px 6px;font-size:11px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--gray);outline:none}
+.item-unit select:focus{border-color:var(--blue-mid)}
+.item-del-btn{background:none;border:none;color:#d1d5db;cursor:pointer;font-size:16px;padding:4px;border-radius:5px;line-height:1;transition:all .15s;align-self:center;margin-top:2px}
+.item-del-btn:hover{color:var(--red);background:var(--red-bg)}
+.btn-add-item{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border:1.5px dashed #9ca3af;border-radius:var(--radius);font-size:12px;font-weight:600;color:#6b7280;cursor:pointer;background:#fff;transition:all .15s;margin:4px 0 2px}
+.btn-add-item:hover{border-color:var(--blue-mid);color:var(--blue-mid);background:#f0f7ff}
+.items-count{font-size:11px;color:#9ca3af;text-align:right;margin-bottom:4px}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-row">
+      <div class="hdr-icon">🏗️</div>
+      <div>
+        <h1>Control de Almacén</h1>
+        <p>Sostenimiento y Mantenimiento de Talud</p>
+      </div>
+      <div class="badge" id="badgeCount" onclick="goTab('r')">0 registros</div>
+    </div>
+  </div>
+
+  <div class="tabs" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="tab active-e" id="te" onclick="goTab('e')">⬇ Entrada</div>
+    <div class="tab" id="ts" onclick="goTab('s')">⬆ Salida</div>
+    <div class="tab" id="tk" onclick="goTab('k')">📦 Stock</div>
+    <div class="tab" id="tr" onclick="goTab('r')">📋 Registros</div>
+  </div>
+
+  <!-- ══ PANEL ENTRADA ══ -->
+  <div class="panel" id="pE">
+
+    <div class="slabel">Fecha y hora</div>
+    <div class="row2">
+      <div class="field" style="margin:0"><input type="date" id="eFecha"/></div>
+      <div class="field" style="margin:0"><input type="time" id="eHora"/></div>
+    </div>
+
+    <div class="slabel">Documento de ingreso <span style="font-weight:400;color:#6b7280;font-size:10px;text-transform:none">— Guía de Remisión O Vale (uno de los dos)</span></div>
+    <div class="xor-box">
+      <div class="xor-col">
+        <label class="xor-label" id="eDocLabel">📄 Guía de Remisión / OC</label>
+        <input type="text" id="eDoc" placeholder="Ej: GR-2025-0432" oninput="xorDocVale('doc')"/>
+        <div class="err" id="eErrDoc">Ingresa guía o vale.</div>
+      </div>
+      <div class="xor-sep">ó</div>
+      <div class="xor-col">
+        <label class="xor-label" id="eValeLabel">🔏 N° de Vale autorizado</label>
+        <input type="text" id="eVale" placeholder="Ej: VALE-001" style="font-family:monospace;font-weight:600"
+          oninput="xorDocVale('vale');checkValeE()"/>
+        <div class="err" id="eErrVale">Ingresa guía o vale.</div>
+      </div>
+    </div>
+    <div class="vale-ok hidden" id="valeOkE">
+      <span>✅</span> <span id="valeOkETxt">Vale ingresado — verifica que coincida con el documento físico.</span>
+    </div>
+
+    <div class="slabel">Origen <span style="font-weight:400;color:#6b7280;font-size:10px;text-transform:none">— Procedencia O Área/Sector/Frente (uno de los dos)</span></div>
+    <div class="err" id="eErrOrigen" style="margin-bottom:8px">Selecciona procedencia o área/sector/frente.</div>
+    <div class="xor-origen-box">
+      <div class="xor-origen-col" id="eProcCol">
+        <label class="xor-label" id="eProcLabel">📍 Procedencia</label>
+        <select id="eProcedencia" onchange="xorOrigen('proc')">
+          <option value="">— Seleccionar —</option>
+          <option>Lima</option>
+          <option>Moquegua</option>
+          <option>Arequipa</option>
+          <option>Almacén Central</option>
+          <option>Almacen Moquegua</option>
+          <option>CPF</option>
+          <option>Almacen MOQ</option>
+          <option>Almacen Obra</option>
+          <option>Otro</option>
+        </select>
+      </div>
+      <div class="xor-sep" style="margin-top:22px">ó</div>
+      <div class="xor-origen-col" id="eUbicCol">
+        <label class="xor-label" id="eUbicLabel">📌 Área / Sector / Frente</label>
+        <select id="eArea" onchange="xorOrigen('ubic');updateESectores()" style="margin-bottom:6px">
+          <option value="">— Área —</option>
+          <option>1000</option>
+          <option>2000</option>
+          <option>3000</option>
+          <option>4000</option>
+          <option>5800</option>
+        </select>
+        <select id="eSector" onchange="updateEFrentes()" disabled style="margin-bottom:6px">
+          <option value="">— Sector —</option>
+        </select>
+        <select id="eFrente" disabled>
+          <option value="">— Frente —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Recibido por <span class="req">*</span></label>
+      <select id="eRecib">
+        <option value="">— Seleccionar almacenero —</option>
+        <option>Luis Vidal</option>
+        <option>Donato Catacora</option>
+      </select>
+      <div class="err" id="eErrRecib">Selecciona quién recibió.</div>
+    </div>
+    <div class="slabel">✅ Autorizado por</div>
+    <div class="field">
+      <label>Autorizado por <span class="req">*</span></label>
+      <select id="eAutorizado" onchange="toggleOtroAutE()">
+        <option value="">— Seleccionar responsable —</option>
+        <option>Yasir Guevara - Ing. Residente</option>
+        <option>Alfredo Edmundo Iparraguirre - Ing. Residente</option>
+        <option>Marisela Tala Flores - Ing. Planeamiento</option>
+        <option>Mireya Manrique Valverde - Ing. Planeamiento</option>
+        <option>Gladys Ramos Anccota - Ing. Planeamiento junior</option>
+        <option value="__eautotro__">✏ Otro (ingresar manualmente)…</option>
+      </select>
+      <div class="field" id="eOtroAutWrap" style="display:none;margin-top:8px">
+        <input type="text" id="eOtroAut" placeholder="Escribe el nombre del responsable"/>
+      </div>
+      <div class="err" id="eErrAut">Ingresa quién autorizó.</div>
+    </div>
+
+    <div class="slabel">Materiales de la guía / vale <span style="font-weight:400;color:#6b7280;font-size:10px;text-transform:none">— hasta 20 ítems</span></div>
+    <div class="err" id="eErrMat">Agrega al menos un material con cantidad válida.</div>
+    <div class="items-hdr">
+      <div>Material</div><div style="text-align:center">Cantidad</div><div style="text-align:center">Unidad</div><div></div>
+    </div>
+    <div id="eItemsWrap"></div>
+    <div class="items-count" id="eItemsCount">1 / 20 ítems</div>
+    <button class="btn-add-item" id="eBtnAddItem" onclick="addItemRow('e')">＋ Agregar otro material</button>
+
+    <div class="slabel">Observaciones</div>
+    <div class="field">
+      <textarea id="eObs" placeholder="Condición del material, notas…"></textarea>
+    </div>
+
+    <button class="btn btn-e" onclick="submitMulti('e')">✔ Registrar Entrada</button>
+    <p class="note">Campos con <span style="color:var(--red)">*</span> son obligatorios</p>
+  </div>
+
+  <!-- ══ PANEL SALIDA ══ -->
+  <div class="panel hidden" id="pS">
+
+    <div class="slabel">Fecha y hora</div>
+    <div class="row2">
+      <div class="field" style="margin:0"><input type="date" id="sFecha"/></div>
+      <div class="field" style="margin:0"><input type="time" id="sHora"/></div>
+    </div>
+
+    <div class="slabel">Destino — Área / Sector / Frente</div>
+    <div class="field">
+      <label>Área <span class="req">*</span></label>
+      <select id="sArea" onchange="updateSectores()">
+        <option value="">— Seleccionar área —</option>
+        <option>1000</option>
+        <option>2000</option>
+        <option>3000</option>
+        <option>4000</option>
+        <option>5800</option>
+      </select>
+      <div class="err" id="sErrArea">Selecciona el área.</div>
+    </div>
+    <div class="field">
+      <label>Sector <span class="req">*</span></label>
+      <select id="sSector" onchange="updateFrentes()" disabled>
+        <option value="">— Primero selecciona un área —</option>
+      </select>
+      <div class="cascade-hint" id="hintSector">Selecciona un área para ver los sectores disponibles.</div>
+      <div class="err" id="sErrSector">Selecciona el sector.</div>
+    </div>
+    <div class="field">
+      <label>Frente <span class="req">*</span></label>
+      <select id="sFrente" disabled>
+        <option value="">— Primero selecciona un sector —</option>
+      </select>
+      <div class="cascade-hint" id="hintFrente">Selecciona un sector para ver los frentes disponibles.</div>
+      <div class="err" id="sErrFrente">Selecciona el frente.</div>
+    </div>
+
+    <div class="slabel">Responsables</div>
+    <div class="field">
+      <label>Solicitado por <span class="req">*</span></label>
+      <select id="sSolic" onchange="toggleOtroSolic()">
+        <option value="">— Seleccionar solicitante —</option>
+        <option>Yeampier Pariente Quenta – Ing. Supervisor</option>
+        <option>Bryan Alexis Ventura Herreros – Ing. Supervisor</option>
+        <option>Angela Arroyo Cuayla Gloria – Ing. Supervisor</option>
+        <option>David Elard Ganampa Medina – Ing. Supervisor</option>
+        <option>Angel Aaron Cespedes Campos – Ing. Supervisor</option>
+        <option>Juan José Ticona Ninaja – Ing. Supervisor</option>
+        <option value="__otro__">✏ Otro (ingresar manualmente)…</option>
+      </select>
+      <div class="field" id="sOtroSolicWrap" style="display:none;margin-top:8px">
+        <input type="text" id="sOtroSolic" placeholder="Escribe el nombre del solicitante"/>
+      </div>
+      <div class="err" id="sErrSolic">Ingresa quién solicitó.</div>
+    </div>
+    <div class="field">
+      <label>Entregado por (almacenero)</label>
+      <select id="sEntreg">
+        <option value="">— Seleccionar almacenero —</option>
+        <option>Luis Vidal</option>
+        <option>Donato Catacora</option>
+      </select>
+    </div>
+
+    <div class="slabel">✅ Autorización</div>
+    <div class="aprov-box">
+      <div class="aprov-icon">📋</div>
+      <div class="aprov-txt">
+        <b>Antes de despachar</b>, el responsable debe firmar un vale físico y asignarle un número.
+        Ingresa ese número aquí para habilitar el registro.
+      </div>
+    </div>
+    <div class="field">
+      <label>N° de Vale autorizado <span class="req">*</span></label>
+      <div style="position:relative">
+        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none">🔏</span>
+        <input type="text" id="sVale" placeholder="Ej: VALE-001 / VA-2025-0032"
+          style="padding-left:34px;font-family:monospace;font-weight:600;letter-spacing:.5px" oninput="checkVale()"/>
+      </div>
+      <div class="err" id="sErrVale">Ingresa el N° de vale autorizado.</div>
+    </div>
+    <div class="field">
+      <label>Autorizado por <span class="req">*</span></label>
+      <select id="sAutorizado" onchange="toggleOtroAut()">
+        <option value="">— Seleccionar responsable —</option>
+        <option>Yasir Guevara - Ing. Residente</option>
+        <option>Alfredo Edmundo Iparraguirre - Ing. Residente</option>
+        <option>Marisela Tala Flores - Ing. Planeamiento</option>
+        <option>Mireya Manrique Valverde - Ing. Planeamiento</option>
+        <option>Gladys Ramos Anccota - Ing. Planeamiento junior</option>
+        <option value="__autotro__">✏ Otro (ingresar manualmente)…</option>
+      </select>
+      <div class="field" id="sOtroAutWrap" style="display:none;margin-top:8px">
+        <input type="text" id="sOtroAut" placeholder="Escribe el nombre del responsable"/>
+      </div>
+      <div class="err" id="sErrAut">Ingresa quién autorizó.</div>
+    </div>
+    <div class="vale-ok hidden" id="valeOk">
+      <span>✅</span> <span id="valeOkTxt">Vale ingresado — verifica que coincida con el documento físico.</span>
+    </div>
+
+    <div class="slabel">Materiales del vale <span style="font-weight:400;color:#6b7280;font-size:10px;text-transform:none">— hasta 20 ítems</span></div>
+    <div class="err" id="sErrMat">Agrega al menos un material con cantidad válida.</div>
+    <div class="items-hdr">
+      <div>Material</div><div style="text-align:center">Cantidad</div><div style="text-align:center">Unidad</div><div></div>
+    </div>
+    <div id="sItemsWrap"></div>
+    <div class="items-count" id="sItemsCount">1 / 20 ítems</div>
+    <button class="btn-add-item" id="sBtnAddItem" onclick="addItemRow('s')">＋ Agregar otro material</button>
+
+    <div class="slabel">Observaciones</div>
+    <div class="field">
+      <textarea id="sObs" placeholder="Notas adicionales…"></textarea>
+    </div>
+
+    <button class="btn btn-s" onclick="submitMulti('s')">✔ Registrar Salida</button>
+    <p class="note">Campos con <span style="color:var(--red)">*</span> son obligatorios</p>
+  </div>
+
+  <!-- ══ PANEL STOCK ══ -->
+  <div class="panel hidden" id="pK">
+    <div class="reg-hdr">
+      <h2>📦 Stock actual</h2>
+      <button class="btn-exp" onclick="exportStockExcel()">⬇ Exportar Excel</button>
+    </div>
+
+    <div class="stock-summary">
+      <div class="stock-card"><div class="stock-num" id="stkTotal">0</div><div class="stock-lbl">Materiales</div></div>
+      <div class="stock-card ok"><div class="stock-num" id="stkOk">0</div><div class="stock-lbl">OK</div></div>
+      <div class="stock-card bajo"><div class="stock-num" id="stkBajo">0</div><div class="stock-lbl">Stock bajo</div></div>
+      <div class="stock-card sin"><div class="stock-num" id="stkSin">0</div><div class="stock-lbl">Sin stock</div></div>
+    </div>
+
+    <div class="field" style="margin-top:14px">
+      <input type="text" id="stkBuscar" placeholder="🔍 Buscar material o código…" oninput="renderStock()"/>
+    </div>
+    <div class="field" style="margin:8px 0 14px">
+      <select id="stkFiltro" onchange="renderStock()">
+        <option value="">Todos los estados</option>
+        <option value="OK">Solo OK</option>
+        <option value="BAJO">Solo Stock bajo</option>
+        <option value="SIN STOCK">Solo Sin stock</option>
+      </select>
+    </div>
+
+    <div id="stockTableWrap"></div>
+
+    <div class="otro-mat-btn" style="margin-top:14px" onclick="toggleAjusteSaldo()">⚙ Ajustar saldos iniciales / stock mínimo</div>
+    <div id="ajusteSaldoWrap" style="display:none;margin-top:10px"></div>
+
+    <div class="otro-mat-btn" style="margin-top:8px;border-color:#7c3aed;color:#7c3aed" onclick="toggleAjusteConv()">🔄 Ajustar factores de conversión (ROLLO→M2, UND→ML…)</div>
+    <div id="ajusteConvWrap" style="display:none;margin-top:10px"></div>
+
+    <button onclick="compartirStockWSP()" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;padding:12px;background:#25D366;color:#fff;border:none;border-radius:var(--radius);font-size:14px;font-weight:700;cursor:pointer;transition:opacity .18s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+      📲 Compartir stock disponible por WhatsApp
+    </button>
+    <div id="wspCopiadoMsg" style="display:none;text-align:center;font-size:12px;color:#166534;background:#dcfce7;border:1px solid #86efac;border-radius:8px;padding:8px;margin-top:8px">
+      ✅ Reporte copiado al portapapeles — pégalo en WhatsApp
+    </div>
+  </div>
+
+  <!-- ══ PANEL REGISTROS ══ -->
+  <div class="panel hidden" id="pR">
+    <div class="reg-hdr">
+      <h2 id="regTitle">Movimientos</h2>
+      <button class="btn-exp" onclick="exportCSV()">⬇ Exportar CSV</button>
+    </div>
+    <div id="regList"></div>
+  </div>
+</div>
+
+
+<!-- Modal éxito -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <div class="modal-ico" id="mIco"></div>
+    <h2 id="mTitle"></h2>
+    <p id="mSub"></p>
+    <div class="sumbox" id="mSum"></div>
+    <button class="btn-nuevo" onclick="closeModal()">+ Nuevo registro</button>
+  </div>
+</div>
+
+<!-- Modal confirmar borrado -->
+<div class="modal-bg" id="modalDelBg">
+  <div class="modal modal-del">
+    <div class="modal-ico" style="background:var(--red-bg)">🗑️</div>
+    <h2>¿Borrar este registro?</h2>
+    <p id="modalDelInfo" style="font-size:12px;color:#6b7280;margin-bottom:14px;line-height:1.6"></p>
+    <div class="sumbox" id="modalDelSum" style="margin-bottom:18px;font-size:12px;line-height:1.85;color:var(--gray)"></div>
+    <button class="btn-del-confirm" onclick="confirmDelete()">🗑 Sí, borrar registro</button>
+    <button class="btn-del-cancel" onclick="closeDelModal()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+// ── Tabla EDP: para cada código de almacén define su equivalente EDP ──────
+// factor = cuántas unidades EDP equivale 1 unidad de almacén (null = revisar manual)
+const EDP_MAP = {
+  "ACE_Co":       {edpCode:"ACE_Co",    edpName:"ACERO CORRUGADO fy=4200 kg/cm2",          edpUnit:"KG",    factor:1},
+  "COPLE.R32":    {edpCode:"COPLE.R32", edpName:"COPLE R32",                               edpUnit:"UND",   factor:1},
+  "COPLE.R38":    {edpCode:"COPLE.R38", edpName:"COPLE R38",                               edpUnit:"UND",   factor:1},
+  "ACOPLE.H25":   {edpCode:"ACOPLE.H25",edpName:"ACOPLE HELICOIDAL 25MM",                  edpUnit:"UND",   factor:1},
+  "ACOPLE.H32":   {edpCode:"ACOPLE.H32",edpName:"ACOPLE HELICOIDAL 32MM",                  edpUnit:"UND",   factor:1},
+  "ALAMBRE":      {edpCode:"ALAMBRE",   edpName:"ALAMBRE GALVANIZADO",                     edpUnit:"KG",    factor:1},
+  "GA105.2m":     {edpCode:"GA105.2m",  edpName:"ANCLAJE GA-7001 TIPO I (10.5MM) L=2M",    edpUnit:"UND",   factor:1},
+  "GA105.3m":     {edpCode:"GA105.3m",  edpName:"ANCLAJE GA-7001 TIPO I (10.5MM) L=3M",    edpUnit:"UND",   factor:1},
+  "GA145.2m":     {edpCode:"GA145.2m",  edpName:"ANCLAJE GA-7001 TIPO II (14.5MM) L=2M",   edpUnit:"UND",   factor:1},
+  "GA145.3m":     {edpCode:"GA145.3m",  edpName:"ANCLAJE GA-7001 TIPO II (14.5MM) L=3M",   edpUnit:"UND",   factor:1},
+  "GA145.4m":     {edpCode:"GA145.4m",  edpName:"ANCLAJE GA-7001 TIPO II (14.5MM) L=4M",   edpUnit:"UND",   factor:1},
+  "GA145.5m":     {edpCode:"GA145.5m",  edpName:"ANCLAJE GA-7001 TIPO II (14.5MM) L=5M",   edpUnit:"UND",   factor:1},
+  "GA185.3m":     {edpCode:"GA185.3m",  edpName:"ANCLAJE GA-7001 TIPO II (18.5MM) L=3M",   edpUnit:"UND",   factor:1},
+  "PERNO.B25L2":  {edpCode:"PERNO.B25L2",edpName:"BARRAS DE HELICOIDAL D25 MM L=2ML",      edpUnit:"UND",   factor:1},
+  "PERNO.B25L3":  {edpCode:"PERNO.B25", edpName:"BARRA HELICOIDAL D25MM",                  edpUnit:"ML",    factor:3},
+  "PERNO.B25L4":  {edpCode:"PERNO.B25", edpName:"BARRA HELICOIDAL D25MM",                  edpUnit:"ML",    factor:4},
+  "PERNO.B25L5":  {edpCode:"PERNO.B25", edpName:"BARRA HELICOIDAL D25MM",                  edpUnit:"ML",    factor:5},
+  "PERNO.B25L1.5":{edpCode:"PERNO.B25", edpName:"BARRA HELICOIDAL D25MM",                  edpUnit:"ML",    factor:1.5},
+  "PERNO.B32L1":  {edpCode:"PERNO.B32", edpName:"BARRA HELICOIDAL D32MM",                  edpUnit:"ML",    factor:1},
+  "PERNO.B32L2":  {edpCode:"PERNO.B32", edpName:"BARRA HELICOIDAL D32MM",                  edpUnit:"ML",    factor:2},
+  "PERNO.B32L3":  {edpCode:"PERNO.B32", edpName:"BARRA HELICOIDAL D32MM",                  edpUnit:"ML",    factor:3},
+  "PERNO.B32L4":  {edpCode:"PERNO.B32", edpName:"BARRA HELICOIDAL D32MM",                  edpUnit:"ML",    factor:4},
+  "PERNO.B32L5":  {edpCode:"PERNO.B32", edpName:"BARRA HELICOIDAL D32MM",                  edpUnit:"ML",    factor:5},
+  "PERNO.B32L6":  {edpCode:"PERNO.B32", edpName:"BARRA HELICOIDAL D32MM",                  edpUnit:"ML",    factor:6},
+  "GBE.1000.4M":  {edpCode:"GBE.1000.4M",edpName:"BARRERA GBE 1000 H4",                   edpUnit:"ML",    factor:4},
+  "GBE.500.3M":   {edpCode:"GBE.500.3M",edpName:"BARRERA GBE 500 H3",                     edpUnit:"ML",    factor:3},
+  "GBE.500.4M":   {edpCode:"GBE.500.4M",edpName:"BARRERA GBE-500A H=4m",                  edpUnit:"UND",   factor:1},
+  "BARRAS":       {edpCode:"PERNO.B25L2",edpName:"BARRAS DE HELICOIDAL D25 MM L=2ML",      edpUnit:"UND",   factor:1},
+  "BROCA.R32":    {edpCode:"BROCA.R32", edpName:"BROCA R32",                               edpUnit:"UND",   factor:1},
+  "BROCA.R38":    {edpCode:"BROCA.R38", edpName:"BROCA R38",                               edpUnit:"UND",   factor:1},
+  "CABLE.6":      {edpCode:"CABLE.6",   edpName:"CABLE ACERO BOA D=6mm",                   edpUnit:"ML",    factor:1},
+  "CABLE.12":     {edpCode:"CABLE.12",  edpName:"CABLE ACERO BOA D=12mm",                  edpUnit:"ML",    factor:1},
+  "CABLE.16":     {edpCode:"CABLE.16",  edpName:"CABLE ACERO BOA D=16mm",                  edpUnit:"ML",    factor:1},
+  "CABLE.19":     {edpCode:"CABLE.19",  edpName:"CABLE ACERO BOA D=19MM",                  edpUnit:"ML",    factor:1},
+  "CABLE.22":     {edpCode:"CABLE.22",  edpName:"CABLE ACERO BOA D=22mm",                  edpUnit:"ML",    factor:1},
+  "CANCAMO":      {edpCode:"CANCAMO",   edpName:"CANCAMOS 1\" L=1.50M LINEA DE VIDA",       edpUnit:"UND",   factor:1},
+  "CEM.EX":       {edpCode:"CEM.EX",    edpName:"CEMENTO EXPANSIVO",                       edpUnit:"BLS",   factor:1},
+  "CEM.YA":       {edpCode:"CEM",       edpName:"CEMENTO TIPO V",                          edpUnit:"BOLSA", factor:1},
+  "CEM.YR":       {edpCode:"CEM",       edpName:"CEMENTO TIPO V",                          edpUnit:"BOLSA", factor:1},
+  "CENTRA.R32":   {edpCode:"CENTRA",    edpName:"CENTRALIZADORES",                         edpUnit:"UND",   factor:1},
+  "CENTRA.R38":   {edpCode:"CENTRA",    edpName:"CENTRALIZADORES",                         edpUnit:"UND",   factor:1},
+  "CENTRA.D25":   {edpCode:"CENTRA",    edpName:"CENTRALIZADORES",                         edpUnit:"UND",   factor:1},
+  "CENTRA.D32":   {edpCode:"CENTRA",    edpName:"CENTRALIZADORES",                         edpUnit:"UND",   factor:1},
+  "C.T2":         {edpCode:"C.T2",      edpName:"CLIP T2",                                 edpUnit:"UND",   factor:1},
+  "C.T3":         {edpCode:"C.T3",      edpName:"CLIP T3",                                 edpUnit:"UND",   factor:1},
+  "CONCRELISTO":  {edpCode:"CONCRELISTO",edpName:"CONCRELISTO",                            edpUnit:"BOLSA", factor:1},
+  "GARRO.12":     {edpCode:"GARRO",     edpName:"GARROTAS",                                edpUnit:"UND",   factor:1},
+  "GARRO.16":     {edpCode:"GARRO",     edpName:"GARROTAS",                                edpUnit:"UND",   factor:1},
+  "GARRO.19":     {edpCode:"GARRO",     edpName:"GARROTAS",                                edpUnit:"UND",   factor:1},
+  "GEO_4x130":    {edpCode:"GEO_4x130", edpName:"GEOMALLA BIAXIAL PET 100",               edpUnit:"M2",    factor:520},
+  "GEO_4x100":    {edpCode:"GEO_4x100", edpName:"GEOTEXTIL NO TEJIDO",                    edpUnit:"M2",    factor:400},
+  "GRI.1":        {edpCode:"GRI.1",     edpName:"GRILLETE 1\"",                            edpUnit:"UND",   factor:1},
+  "GRI.12":       {edpCode:"GRI.12",    edpName:"GRILLETE 1/2\"",                          edpUnit:"UND",   factor:1},
+  "GRI.34":       {edpCode:"GRI.34",    edpName:"GRILLETE 3/4\"",                          edpUnit:"UND",   factor:1},
+  "GRI.58":       {edpCode:"GRI.58",    edpName:"GRILLETE 5/8\"",                          edpUnit:"UND",   factor:1},
+  "GRI.78":       {edpCode:"GRI.78",    edpName:"GRILLETE 7/8\"",                          edpUnit:"UND",   factor:1},
+  "InPE_985":     {edpCode:"InPE_985",  edpName:"INTRAPLAST (ADITIVO)",                    edpUnit:"KG",    factor:1},
+  "D80.3":        {edpCode:"D80.3",     edpName:"MALLA DELTAX 80/3",                       edpUnit:"M2",    factor:117},
+  "D80.2":        {edpCode:"D80.2",     edpName:"MALLA DELTAX 80/2",                       edpUnit:"M2",    factor:117},
+  "M80.3_2.3":    {edpCode:"M80.3",     edpName:"MALLA MINAX 80/3",                        edpUnit:"M2",    factor:46},
+  "M80.3_2.5x20": {edpCode:"M80.3",     edpName:"MALLA MINAX 80/3",                        edpUnit:"M2",    factor:50},
+  "M80.3_2.5x25": {edpCode:"M80.3",     edpName:"MALLA MINAX 80/3",                        edpUnit:"M2",    factor:62.5},
+  "M80.3_3.5":    {edpCode:"M80.3",     edpName:"MALLA MINAX 80/3",                        edpUnit:"M2",    factor:105},
+  "M80.3_3.9":    {edpCode:"M80.3",     edpName:"MALLA MINAX 80/3",                        edpUnit:"M2",    factor:117},
+  "M80.4_2.3":    {edpCode:"M80.4",     edpName:"MALLA MINAX 80/4",                        edpUnit:"M2",    factor:34.5},
+  "M80.4_2.5x15": {edpCode:"M80.4",     edpName:"MALLA MINAX 80/4",                        edpUnit:"M2",    factor:37.5},
+  "M80.4_2.5x22.5":{edpCode:"M80.4",   edpName:"MALLA MINAX 80/4",                        edpUnit:"M2",    factor:56.25},
+  "M80.4_2.3x30": {edpCode:"M80.4",     edpName:"MALLA MINAX 80/4",                        edpUnit:"M2",    factor:69},
+  "M80.4_2.5x12.5":{edpCode:"M80.4",   edpName:"MALLA MINAX 80/4",                        edpUnit:"M2",    factor:31.25},
+  "M80.4_2.5x20": {edpCode:"M80.4",     edpName:"MALLA MINAX 80/4",                        edpUnit:"M2",    factor:50},
+  "M80.4_3.3x15": {edpCode:"M80.4",     edpName:"MALLA MINAX 80/4",                        edpUnit:"M2",    factor:49.99},
+  "Ma_O":         {edpCode:"MALLA_Ol",  edpName:"MALLA OLIMPICA",                          edpUnit:"M2",    factor:null}, // definir manualmente
+  "RATCHER":      {edpCode:"RATCHER",   edpName:"MALLA RATCHER",                           edpUnit:"M2",    factor:420},
+  "T65.3":        {edpCode:"T65.3",     edpName:"MALLA TECCO G65/3",                       edpUnit:"M2",    factor:117},
+  "T65.4":        {edpCode:"T65.4",     edpName:"MALLA TECCO G65/4",                       edpUnit:"M2",    factor:50},
+  "T80.3":        {edpCode:"T80.3",     edpName:"MALLA TECCO G80/3",                       edpUnit:"M2",    factor:117},
+  "Ma_TT":        {edpCode:"Ma_TT",     edpName:"MALLA TRIPLE TORSION",                    edpUnit:"M2",    factor:null}, // definir manualmente
+  "PERNO.R38L3":  {edpCode:"PERNO.Auto_R38",edpName:"PERNO AUTOPERFORANTE R38-500",        edpUnit:"ML",    factor:3},
+  "PERNO.R32L1.5":{edpCode:"PERNO.Auto_R32",edpName:"PERNO AUTOPERFORANTE R32-500",        edpUnit:"ML",    factor:1.5},
+  "PERNO.R38L1.5":{edpCode:"PERNO.Auto_R38",edpName:"PERNO AUTOPERFORANTE R38-500",        edpUnit:"ML",    factor:1.5},
+  "PLACA.B25_4.5":{edpCode:"PLACA.B25", edpName:"PLACAS BAHE 25MM",                       edpUnit:"UND",   factor:1},
+  "PLACA.B25_4":  {edpCode:"PLACA.B25", edpName:"PLACAS BAHE 25MM",                       edpUnit:"UND",   factor:1},
+  "PLACA.B25P_33":{edpCode:"PLACA.B25", edpName:"PLACAS BAHE 25MM",                       edpUnit:"UND",   factor:1},
+  "PLACA.B25P_25":{edpCode:"PLACA.B25", edpName:"PLACAS BAHE 25MM",                       edpUnit:"UND",   factor:1},
+  "PLACA.B32_4.5":{edpCode:"PLACA.B32", edpName:"PLACA ABOVEDADA 32mm 200x200x4.5mm",     edpUnit:"UND",   factor:1},
+  "PLACA.B32_8":  {edpCode:"PLACA.B32", edpName:"PLACA ABOVEDADA 32mm 200x200x8mm",       edpUnit:"UND",   factor:1},
+  "PLACA.B32_12": {edpCode:"PLACA.B32", edpName:"Placa Bahe D=32mm 200x200x12mm",         edpUnit:"UND",   factor:1},
+  "PLACA.B38":    {edpCode:"PLACA.B38", edpName:"PLACA ABOVEDADA 38mm 200X200X8mm",       edpUnit:"UND",   factor:1},
+  "PLACA.BP25_8": {edpCode:"PLACA.B25", edpName:"PLACAS BAHE 25MM",                       edpUnit:"UND",   factor:1},
+  "PLACA.SP.33":  {edpCode:"PLACA.SP.33",edpName:"PLACA SPIKE P33",                       edpUnit:"UND",   factor:1},
+  "PLACA.TR25":   {edpCode:"PLACA.TR25",edpName:"PLACA TIPO RANA 25MM",                   edpUnit:"UND",   factor:1},
+  "PLACA.TR32":   {edpCode:"PLACA.TR32",edpName:"PLACA TIPO RANA 32MM",                   edpUnit:"UND",   factor:1},
+  "Sikament":     {edpCode:"Sikament",  edpName:"SIKAMENT (ADITIVO)",                      edpUnit:"LT",    factor:1},
+  "SUJE.12":      {edpCode:"SUJE.12",   edpName:"SUJETACABLES FORGET 12MM",               edpUnit:"UND",   factor:1},
+  "SUJE.16":      {edpCode:"SUJE.16",   edpName:"SUJETACABLES FORGET 16MM",               edpUnit:"UND",   factor:1},
+  "SUJE.19":      {edpCode:"SUJE.19",   edpName:"SUJETACABLES FORGET 19MM",               edpUnit:"UND",   factor:1},
+  "SUJE.22":      {edpCode:"SUJE.22",   edpName:"SUJETACABLES FORGET 22MM",               edpUnit:"UND",   factor:1},
+  "SUJE.6":       {edpCode:"SUJE.6",    edpName:"SUJETACABLES FORGET 6MM",                edpUnit:"UND",   factor:1},
+  "TUERCA.B25":   {edpCode:"TUERCA.B25",edpName:"TUERCA BAHE 25MM",                       edpUnit:"UND",   factor:1},
+  "TUERCA.B32":   {edpCode:"TUERCA.B32",edpName:"TUERCA BAHE 32MM",                       edpUnit:"UND",   factor:1},
+  "TUERCA.R32":   {edpCode:"TUERCA.R32",edpName:"TUERCA R32",                             edpUnit:"UND",   factor:1},
+  "TUERCA.R38":   {edpCode:"TUERCA.R38",edpName:"TUERCA R38",                             edpUnit:"UND",   factor:1},
+  "SOGA":         {edpCode:"SOGA",      edpName:"SOGA",                                   edpUnit:"ML",    factor:1},
+  "AGUA":         {edpCode:"AGUA",      edpName:"AGUA PARA OBRA",                         edpUnit:"M3",    factor:1},
+};
+
+// ── Materiales de medida variable (llegan en rollos de distintas medidas) ──
+// Para estos, se habilita el selector ROLLO/M2 aunque no exista un factor fijo:
+// el usuario ingresa directamente la cantidad en la unidad que conoce (recomendado M2),
+// sin multiplicación automática, ya que el tamaño del rollo varía por lote.
+const UNIDAD_VARIABLE = ['Ma_O','Ma_TT'];
+function esMedidaVariable(code){ return UNIDAD_VARIABLE.includes(code); }
+
+// ── Clave localStorage para overrides de factores EDP ─────────
+const CONV_OVERRIDES_KEY = 'almacen_conv_overrides_v1';
+function loadConvOverrides(){try{return JSON.parse(localStorage.getItem(CONV_OVERRIDES_KEY)||'{}');}catch(e){return {};}}
+function saveConvOverrides(o){localStorage.setItem(CONV_OVERRIDES_KEY,JSON.stringify(o));}
+
+// Devuelve conv EDP efectiva para un código: override manual > EDP_MAP > null
+function getEdpConv(code){
+  const overrides=loadConvOverrides();
+  const base=EDP_MAP[code]||null;
+  if(!base) return null;
+  const factor = overrides[code]!==undefined ? overrides[code] : base.factor;
+  return {...base, factor};
+}
+
+const MATS=[
+  {code:"ACE_Co",name:"ACERO CORRUGADO fy=4200 kg/cm2",cat:"ACCESORIOS",unit:"KG"},
+  {code:"ACOPLE.H25",name:"Acople helicoidal 25mm",cat:"ACCESORIOS",unit:"UND"},
+  {code:"ACOPLE.H32",name:"Acople helicoidal 32mm",cat:"ACCESORIOS",unit:"UND"},
+  {code:"COPLE.R32",name:"Acople Autoperforante R32",cat:"ACCESORIOS",unit:"UND"},
+  {code:"COPLE.R38",name:"Acople Autoperforante R38",cat:"ACCESORIOS",unit:"UND"},
+  {code:"ALAMBRE",name:"Alambre Galvanizado",cat:"ACCESORIOS",unit:"KG"},
+  {code:"GA105.2m",name:"Anclaje GA-7001 Tipo I (10.5mm) L=2m",cat:"ANCLAJES",unit:"UND"},
+  {code:"GA105.3m",name:"Anclaje GA-7001 Tipo I (10.5mm) L=3m",cat:"ANCLAJES",unit:"UND"},
+  {code:"GA145.2m",name:"Anclaje GA-7001 Tipo II (14.5mm) L=2m",cat:"ANCLAJES",unit:"UND"},
+  {code:"GA145.3m",name:"Anclaje GA-7001 Tipo II (14.5mm) L=3m",cat:"ANCLAJES",unit:"UND"},
+  {code:"GA145.4m",name:"Anclaje GA-7001 Tipo II (14.5mm) L=4m",cat:"ANCLAJES",unit:"UND"},
+  {code:"GA145.5m",name:"Anclaje GA-7001 Tipo II (14.5mm) L=5m",cat:"ANCLAJES",unit:"UND"},
+  {code:"GA185.3m",name:"Anclaje GA-7001 Tipo II (18.5mm) L=3m",cat:"ANCLAJES",unit:"UND"},
+  {code:"PERNO.B25L2",name:"Barra Helicoidal D25mm L=02m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B25L3",name:"Barra Helicoidal D25mm L=03m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B25L4",name:"Barra Helicoidal D25mm L=04m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B25L5",name:"Barra Helicoidal D25mm L=05m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B25L1.5",name:"Barra Helicoidal D25mm L=1.5m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B32L1",name:"Barra Helicoidal D32mm L=01m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B32L2",name:"Barra Helicoidal D32mm L=02m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B32L3",name:"Barra Helicoidal D32mm L=03m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B32L4",name:"Barra Helicoidal D32mm L=04m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B32L5",name:"Barra Helicoidal D32mm L=05m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.B32L6",name:"Barra Helicoidal D32mm L=06m",cat:"PERNOS",unit:"UND"},
+  {code:"BARRAS",name:"BARRAS DE ACERO 25 MM L=2ML",cat:"PERNOS",unit:"UND"},
+  {code:"GBE.1000.4M",name:"Barrera GBE-1000 H=4m",cat:"BARRERA",unit:"UND"},
+  {code:"GBE.500.3M",name:"Barrera GBE-500A H=3m",cat:"BARRERA",unit:"UND"},
+  {code:"GBE.500.4M",name:"Barrera GBE-500A H=4m",cat:"BARRERA",unit:"UND"},
+  {code:"BROCA.R32",name:"Broca Autoperforante R32",cat:"ACCESORIOS",unit:"UND"},
+  {code:"BROCA.R38",name:"Broca Autoperforante R38",cat:"ACCESORIOS",unit:"UND"},
+  {code:"CABLE.LV",name:"Cable Acero BOA D=12mm Linea de Vida",cat:"CABLES",unit:"M"},
+  {code:"CABLE.6",name:"Cable de Acero BOA D=06mm  1/4",cat:"CABLES",unit:"ML"},
+  {code:"CABLE.12",name:"Cable de Acero BOA D=12mm  1/2",cat:"CABLES",unit:"ML"},
+  {code:"CABLE.16",name:"Cable de Acero BOA D=16mm  5/8",cat:"CABLES",unit:"ML"},
+  {code:"CABLE.19",name:"Cable de Acero BOA D=19mm  3/4",cat:"CABLES",unit:"ML"},
+  {code:"CABLE.22",name:"Cable de Acero BOA D=22mm  7/8",cat:"CABLES",unit:"ML"},
+  {code:"AGUA_C",name:"Caja de Agua para Consumo",cat:"CEMENTO",unit:"CAJA"},
+  {code:"CANCAMO",name:'Cancamos de 1" L=1.50m',cat:"ACCESORIOS",unit:"UND"},
+  {code:"CEM.CON",name:"Cemento Conductivo",cat:"CEMENTO",unit:"BLS"},
+  {code:"CEM.EX",name:"Cemento Expansivo",cat:"CEMENTO",unit:"BLS"},
+  {code:"CEM.YA",name:"Cemento Yura Max Azul",cat:"CEMENTO",unit:"BOLSA"},
+  {code:"CEM.YR",name:"Cemento Yura Pro Rojo",cat:"CEMENTO",unit:"BOLSA"},
+  {code:"CENTRA.R32",name:"Centralizador Estrella R32",cat:"ACCESORIOS",unit:"UND"},
+  {code:"CENTRA.R38",name:"Centralizador Estrella R38",cat:"ACCESORIOS",unit:"UND"},
+  {code:"CENTRA.D25",name:"Centralizador PVC D=25mm",cat:"ACCESORIOS",unit:"UND"},
+  {code:"CENTRA.D32",name:"Centralizador PVC D=32mm",cat:"ACCESORIOS",unit:"UND"},
+  {code:"C.T2",name:"Clips de Conexion T2",cat:"ACCESORIOS",unit:"UND"},
+  {code:"C.T3",name:"Clips de Conexion T3",cat:"ACCESORIOS",unit:"UND"},
+  {code:"CONCRELISTO",name:"Concrelisto",cat:"CEMENTO",unit:"BOLSA"},
+  {code:"GARRO.12",name:"Garrota D=12mm 1/2",cat:"ACCESORIOS",unit:"UND"},
+  {code:"GARRO.16",name:"Garrota D=16mm 5/8",cat:"ACCESORIOS",unit:"UND"},
+  {code:"GARRO.19",name:"Garrota D=19mm 3/4",cat:"ACCESORIOS",unit:"UND"},
+  {code:"GEO_4x130",name:"Geomalla Biaxial 4x130m",cat:"MALLA",unit:"ROLLO"},
+  {code:"GEO_4x100",name:"Geotextil 4x100m",cat:"MALLA",unit:"ROLLO"},
+  {code:"GRI.1",name:'Grillete 1"',cat:"ACCESORIOS",unit:"UND"},
+  {code:"GRI.12",name:'Grillete 1/2"',cat:"ACCESORIOS",unit:"UND"},
+  {code:"GRI.34",name:'Grillete 3/4"',cat:"ACCESORIOS",unit:"UND"},
+  {code:"GRI.58",name:'Grillete 5/8"',cat:"ACCESORIOS",unit:"UND"},
+  {code:"GRI.78",name:'Grillete 7/8"',cat:"ACCESORIOS",unit:"UND"},
+  {code:"InPE_985",name:"Intraplast PE-9 X 0.85 KG",cat:"ACCESORIOS",unit:"KG"},
+  {code:"D80.3",name:"Malla Deltax G80/3 3.9x30m",cat:"MALLA",unit:"ROLLO"},
+  {code:"D80.2",name:"Malla Deltax G80/2 3.9x30m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.3_2.3",name:"Malla Minax 80/3 D=2.3x20m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.3_2.5x20",name:"Malla Minax 80/3 D=2.5x20m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.3_2.5x25",name:"Malla Minax 80/3 D=2.5x25m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.3_3.5",name:"Malla Minax 80/3 D=3.5x30m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.3_3.9",name:"Malla Minax 80/3 D=3.9x30m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.4_2.3",name:"Malla Minax 80/4 2.3X15m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.4_2.5x15",name:"Malla Minax 80/4 2.5X15m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.4_2.5x22.5",name:"Malla Minax 80/4 2.5X22.5m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.4_2.3x30",name:"Malla Minax 80/4 D=2.3x30m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.4_2.5x12.5",name:"Malla Minax 80/4 D=2.5x12.5m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.4_2.5x20",name:"Malla Minax 80/4 D=2.5x20m",cat:"MALLA",unit:"ROLLO"},
+  {code:"M80.4_3.3x15",name:"Malla Minax 80/4 D=3.3x15.15m",cat:"MALLA",unit:"ROLLO"},
+  {code:"Ma_O",name:"Malla Olimpica",cat:"MALLA",unit:"ROLLO"},
+  {code:"RATCHER",name:"Malla Raschel 4.2x100m",cat:"MALLA",unit:"ROLLO"},
+  {code:"T65.3",name:"Malla Tecco G65/3 3.9x30m",cat:"MALLA",unit:"ROLLO"},
+  {code:"T65.4",name:"Malla Tecco G65/4 2.50x20m",cat:"MALLA",unit:"ROLLO"},
+  {code:"T80.3",name:"Malla Tecco G80/3 3.9x30m",cat:"MALLA",unit:"ROLLO"},
+  {code:"Ma_TT",name:"Malla Triple Torsion",cat:"MALLA",unit:"ROLLO"},
+  {code:"PERNO.Auto_R32",name:"Perno Autoperforante R32-500",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.Auto_R38",name:"Perno Autoperforante R38-500",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.R38L3",name:"Perno DYWI Drill R38-420 L=03m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.R32L1.5",name:"Perno DYWI Drill R32-320 L=1.5m",cat:"PERNOS",unit:"UND"},
+  {code:"PERNO.R38L1.5",name:"Perno DYWI Drill R38-420 L=1.5m",cat:"PERNOS",unit:"UND"},
+  {code:"PLACA.B25_4.5",name:"Placa Bahe D=25mm 200x200x4.5mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.B25_4",name:"Placa Bahe D=25mm 200x200x4mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.B25P_33",name:"Placa Bahe Con Pestaña D=33mm 200x200x4.5",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.B25P_25",name:"Placa Bahe Con Pestaña D=25mm 200x200x4.5",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.B32_4.5",name:"Placa Bahe D=32mm 200x200x4.5mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.B32_8",name:"Placa Bahe D=32mm 200x200x8mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.B32_12",name:"Placa Bahe D=32mm 200x200x12mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.B38",name:"Placa Bahe D=38mm 200x200x8mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.BP25_8",name:"Placa Bahe Plana D=25mm 200x200x8mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.SP.33",name:"Placa Spike P33",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.TR25",name:"Placa Tipo Rana 25mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.TR30",name:"Placa Tipo Rana 30mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.TR32",name:"Placa Tipo Rana 32mm",cat:"PLACAS",unit:"UND"},
+  {code:"PLACA.TR38",name:"Placa Tipo Rana 38mm",cat:"PLACAS",unit:"UND"},
+  {code:"Sikament",name:"Sikament (Aditivo)",cat:"CEMENTO",unit:"LT"},
+  {code:"SOGA",name:"Soga",cat:"ACCESORIOS",unit:"ML"},
+  {code:"AGUA",name:"Agua para Obra",cat:"CEMENTO",unit:"M3"},
+  {code:"SUJE.12",name:"Sujetacable 12mm 1/2",cat:"ACCESORIOS",unit:"UND"},
+  {code:"SUJE.16",name:"Sujetacable 16mm 5/8",cat:"ACCESORIOS",unit:"UND"},
+  {code:"SUJE.19",name:"Sujetacable 19mm 3/4",cat:"ACCESORIOS",unit:"UND"},
+  {code:"SUJE.22",name:"Sujetacable 22mm 7/8",cat:"ACCESORIOS",unit:"UND"},
+  {code:"SUJE.6",name:"Sujetacable 6mm 1/4",cat:"ACCESORIOS",unit:"UND"},
+  {code:"TUERCA.B25",name:"Tuerca Bahe D=25mm",cat:"ACCESORIOS",unit:"UND"},
+  {code:"TUERCA.B32",name:"Tuerca Bahe D=32mm",cat:"ACCESORIOS",unit:"UND"},
+  {code:"TUERCA.R32",name:"Tuerca R32",cat:"ACCESORIOS",unit:"UND"},
+  {code:"TUERCA.R38",name:"Tuerca R38",cat:"ACCESORIOS",unit:"UND"}
+];
+
+
+// ── Saldos iniciales (migrados desde Control_Stock_Talud_.xlsx) ──
+// El stock actual = saldoInicial + entradas registradas - salidas registradas
+const SALDOS_INICIALES=[
+  {code:'ACE_Co',unit:'KG',saldoInicial:0},
+  {code:'ACOPLE.H25',unit:'UND',saldoInicial:0},
+  {code:'ACOPLE.H32',unit:'UND',saldoInicial:0},
+  {code:'ALAMBRE',unit:'KG',saldoInicial:0},
+  {code:'GA105.2m',unit:'UND',saldoInicial:0},
+  {code:'GA105.3m',unit:'UND',saldoInicial:0},
+  {code:'GA145.2m',unit:'UND',saldoInicial:0},
+  {code:'GA145.3m',unit:'UND',saldoInicial:0},
+  {code:'GA145.4m',unit:'UND',saldoInicial:0},
+  {code:'GA145.5m',unit:'UND',saldoInicial:0},
+  {code:'GA185.3m',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B25L2',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B25L3',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B25L4',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B25L5',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B25L1.5',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B32L1',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B32L2',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B32L3',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B32L4',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B32L5',unit:'UND',saldoInicial:0},
+  {code:'PERNO.B32L6',unit:'UND',saldoInicial:0},
+  {code:'BARRAS',unit:'UND',saldoInicial:0},
+  {code:'GBE.1000.4M',unit:'UND',saldoInicial:0},
+  {code:'GBE.500.3M',unit:'UND',saldoInicial:0},
+  {code:'GBE.500.4M',unit:'UND',saldoInicial:0},
+  {code:'BROCA.R32',unit:'UND',saldoInicial:0},
+  {code:'BROCA.R38',unit:'UND',saldoInicial:0},
+  {code:'CABLE.LV',unit:'M',saldoInicial:0},
+  {code:'CABLE.6',unit:'ML',saldoInicial:0},
+  {code:'CABLE.12',unit:'ML',saldoInicial:0},
+  {code:'CABLE.16',unit:'ML',saldoInicial:0},
+  {code:'CABLE.19',unit:'ML',saldoInicial:0},
+  {code:'CABLE.22',unit:'ML',saldoInicial:0},
+  {code:'AGUA_C',unit:'CAJA',saldoInicial:0},
+  {code:'CANCAMO',unit:'UND',saldoInicial:0},
+  {code:'CEM.CON',unit:'BLS',saldoInicial:0},
+  {code:'CEM.EX',unit:'BLS',saldoInicial:0},
+  {code:'CEM.YA',unit:'BOLSA',saldoInicial:0},
+  {code:'CEM.YR',unit:'BOLSA',saldoInicial:0},
+  {code:'CENTRA.R32',unit:'UND',saldoInicial:0},
+  {code:'CENTRA.R38',unit:'UND',saldoInicial:0},
+  {code:'CENTRA.D25',unit:'UND',saldoInicial:0},
+  {code:'CENTRA.D32',unit:'UND',saldoInicial:0},
+  {code:'C.T2',unit:'UND',saldoInicial:0},
+  {code:'C.T3',unit:'UND',saldoInicial:0},
+  {code:'CONCRELISTO',unit:'BOLSA',saldoInicial:0},
+  {code:'GARRO.12',unit:'UND',saldoInicial:0},
+  {code:'GARRO.16',unit:'UND',saldoInicial:0},
+  {code:'GARRO.19',unit:'UND',saldoInicial:0},
+  {code:'GEO_4x130',unit:'ROLLO',saldoInicial:0},
+  {code:'GEO_4x100',unit:'ROLLO',saldoInicial:0},
+  {code:'GRI.1',unit:'UND',saldoInicial:0},
+  {code:'GRI.12',unit:'UND',saldoInicial:0},
+  {code:'GRI.34',unit:'UND',saldoInicial:0},
+  {code:'GRI.58',unit:'UND',saldoInicial:0},
+  {code:'GRI.78',unit:'UND',saldoInicial:0},
+  {code:'InPE_985',unit:'KG',saldoInicial:0},
+  {code:'D80.3',unit:'ROLLO',saldoInicial:0},
+  {code:'D80.2',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.3_2.3',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.3_2.5x20',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.3_2.5x25',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.3_3.5',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.3_3.9',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.4_2.3',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.4_2.5x15',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.4_2.5x22.5',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.4_2.3x30',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.4_2.5x12.5',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.4_2.5x20',unit:'ROLLO',saldoInicial:0},
+  {code:'M80.4_3.3x15',unit:'ROLLO',saldoInicial:0},
+  {code:'Ma_O',unit:'ROLLO',saldoInicial:0},
+  {code:'RATCHER',unit:'ROLLO',saldoInicial:0},
+  {code:'T65.3',unit:'ROLLO',saldoInicial:0},
+  {code:'T65.4',unit:'ROLLO',saldoInicial:0},
+  {code:'T80.3',unit:'ROLLO',saldoInicial:0},
+  {code:'Ma_TT',unit:'ROLLO',saldoInicial:0},
+  {code:'PERNO.Auto_R32',unit:'UND',saldoInicial:0},
+  {code:'PERNO.Auto_R38',unit:'UND',saldoInicial:0},
+  {code:'PERNO.R38L3',unit:'UND',saldoInicial:0},
+  {code:'PERNO.R32L1.5',unit:'UND',saldoInicial:0},
+  {code:'PERNO.R38L1.5',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B25_4.5',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B25_4',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B25P_33',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B25P_25',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B32_4.5',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B32_8',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B32_12',unit:'UND',saldoInicial:0},
+  {code:'PLACA.B38',unit:'UND',saldoInicial:0},
+  {code:'PLACA.BP25_8',unit:'UND',saldoInicial:0},
+  {code:'PLACA.SP.33',unit:'UND',saldoInicial:0},
+  {code:'PLACA.TR25',unit:'UND',saldoInicial:0},
+  {code:'PLACA.TR30',unit:'UND',saldoInicial:0},
+  {code:'PLACA.TR32',unit:'UND',saldoInicial:0},
+  {code:'PLACA.TR38',unit:'UND',saldoInicial:0},
+  {code:'Sikament',unit:'LT',saldoInicial:0},
+  {code:'SOGA',unit:'ML',saldoInicial:0},
+  {code:'AGUA',unit:'M3',saldoInicial:0},
+  {code:'SUJE.12',unit:'UND',saldoInicial:0},
+  {code:'SUJE.16',unit:'UND',saldoInicial:0},
+  {code:'SUJE.19',unit:'UND',saldoInicial:0},
+  {code:'SUJE.22',unit:'UND',saldoInicial:0},
+  {code:'SUJE.6',unit:'UND',saldoInicial:0},
+  {code:'TUERCA.B25',unit:'UND',saldoInicial:0},
+  {code:'TUERCA.B32',unit:'UND',saldoInicial:0},
+  {code:'TUERCA.R32',unit:'UND',saldoInicial:0},
+  {code:'TUERCA.R38',unit:'UND',saldoInicial:0},
+];
+
+// ── Árbol Área → Sector → Frente ────────────────────────────
+const UBICACIONES={
+  '1000':{
+    '—':['—'],
+   },
+  '2000':{
+    'By Pass Sur':['By Pass Sur 01'],
+    'By Pass':['BPN - 32'],
+    'Tajo':['Tajo 04 Norte'],
+    'Zona 03':['Tajo 03 Norte'],
+   'OPB':['OPB-Barreras'],
+  },
+  '3000':{
+    'Faja Overland':['FAJA OVERLAND ZONA A - A1','FAJA OVERLAND ZONA C','FAJA OVERLAND ZONA D'],
+    'Poza PC':['Poza PC 002','POZA PC-003','ACCESO POZA PC-003'],
+    'VIA MAR II':['ZCM08','ZCM09','ZCM06','ZCM05','ZCM03','ZCM02','ZCM01'],
+    'Mantenimiento MAR II':['VM_M-10','VM_M-5','VM_M-4','VM_M-1','VM_M-16','VM_M-8','VM_M-6','VM_M-9','VM_M-13','VM_M-12','VM_M-7','VM_M-3'],
+  },
+  '4000':{
+    'Sala Electrica':['PLATAFORMA SALA ELECTRICA','PLATAFORMA DE OPERACIONES'],
+    },
+  '5800':{
+    'Mantenimiento MAR II':['VM_M-2'],
+  },
+};
+
+function xorOrigen(filled){
+  const procEl=document.getElementById('eProcedencia');
+  const areaEl=document.getElementById('eArea');
+  const secEl=document.getElementById('eSector');
+  const frtEl=document.getElementById('eFrente');
+  const procLabel=document.getElementById('eProcLabel');
+  const ubicLabel=document.getElementById('eUbicLabel');
+  if(filled==='proc'){
+    const has=procEl.value!=='';
+    areaEl.disabled=has; secEl.disabled=true; frtEl.disabled=true;
+    if(has){areaEl.value='';secEl.innerHTML='<option value="">— Sector —</option>';frtEl.innerHTML='<option value="">— Frente —</option>';ubicLabel.classList.add('dim');}
+    else{ubicLabel.classList.remove('dim');}
+    procLabel.classList.remove('dim');
+  } else {
+    const has=areaEl.value!=='';
+    procEl.disabled=has;
+    if(has){procEl.value='';procLabel.classList.add('dim');}
+    else{procLabel.classList.remove('dim');}
+    ubicLabel.classList.remove('dim');
+  }
+  document.getElementById('eErrOrigen').classList.remove('show');
+}
+function updateESectores(){
+  const area=document.getElementById('eArea').value;
+  const secSel=document.getElementById('eSector');
+  const frtSel=document.getElementById('eFrente');
+  secSel.innerHTML='<option value="">— Sector —</option>';
+  frtSel.innerHTML='<option value="">— Frente —</option>';
+  secSel.disabled=!area; frtSel.disabled=true;
+  Object.keys(UBICACIONES[area]||{}).forEach(s=>{
+    const o=document.createElement('option'); o.value=s; o.textContent=s; secSel.appendChild(o);
+  });
+}
+function updateEFrentes(){
+  const area=document.getElementById('eArea').value;
+  const sector=document.getElementById('eSector').value;
+  const frtSel=document.getElementById('eFrente');
+  frtSel.innerHTML='<option value="">— Frente —</option>';
+  frtSel.disabled=!sector;
+  (UBICACIONES[area]?.[sector]||[]).forEach(f=>{
+    const o=document.createElement('option'); o.value=f; o.textContent=f; frtSel.appendChild(o);
+  });
+}
+
+function updateSectores(){
+  const area=document.getElementById('sArea').value;
+  const secSel=document.getElementById('sSector');
+  const frtSel=document.getElementById('sFrente');
+  secSel.innerHTML='<option value="">— Seleccionar sector —</option>';
+  frtSel.innerHTML='<option value="">— Primero selecciona un sector —</option>';
+  frtSel.disabled=true;
+  if(!area){secSel.disabled=true;return;}
+  secSel.disabled=false;
+  Object.keys(UBICACIONES[area]||{}).forEach(s=>{
+    const o=document.createElement('option'); o.value=s; o.textContent=s; secSel.appendChild(o);
+  });
+}
+
+function updateFrentes(){
+  const area=document.getElementById('sArea').value;
+  const sector=document.getElementById('sSector').value;
+  const frtSel=document.getElementById('sFrente');
+  frtSel.innerHTML='<option value="">— Seleccionar frente —</option>';
+  if(!sector){frtSel.disabled=true;return;}
+  frtSel.disabled=false;
+  (UBICACIONES[area]?.[sector]||[]).forEach(f=>{
+    frtSel.innerHTML+=`<option>${f}</option>`;
+  });
+  document.getElementById('hintFrente').style.display='none';
+}
+
+// ── Estado ──────────────────────────────────────────────────
+const STORE_KEY='almacen_talud_v1';
+let selMat={e:null,s:null};
+let tab='e';
+
+function loadRegs(){try{return JSON.parse(localStorage.getItem(STORE_KEY)||'[]');}catch(e){return [];}}
+function saveRegs(arr){localStorage.setItem(STORE_KEY,JSON.stringify(arr));}
+
+function updateBadge(){
+  const n=loadRegs().length;
+  document.getElementById('badgeCount').textContent=n+' registro'+(n!==1?'s':'');
+}
+
+// ── Tabs ─────────────────────────────────────────────────────
+function goTab(t){
+  tab=t;
+  ['e','s','k','r'].forEach(x=>{
+    document.getElementById('p'+x.toUpperCase()).classList.toggle('hidden',x!==t);
+    document.getElementById('t'+x).className='tab'+(x===t?' active-'+t:'');
+  });
+  if(t==='r') renderRegs();
+  if(t==='k') renderStock();
+}
+
+// ── Fecha/hora ───────────────────────────────────────────────
+function setNow(pre){
+  const now=new Date();
+  document.getElementById(pre+'Fecha').value=now.toISOString().split('T')[0];
+  document.getElementById(pre+'Hora').value=now.toTimeString().slice(0,5);
+}
+setNow('e'); setNow('s');
+
+// ── Buscador material ────────────────────────────────────────
+function filterMat(p){
+  const q=document.getElementById(p+'MatSearch').value.toLowerCase().trim();
+  const drop=document.getElementById(p+'MatDrop');
+  if(!q){drop.innerHTML='';drop.classList.remove('open');return;}
+  const res=MATS.filter(m=>m.code.toLowerCase().includes(q)||m.name.toLowerCase().includes(q)||m.cat.toLowerCase().includes(q)).slice(0,12);
+  if(!res.length){drop.innerHTML='<div style="padding:11px;color:#9ca3af;font-size:13px;text-align:center">Sin resultados</div>';drop.classList.add('open');return;}
+  drop.innerHTML=res.map(m=>`<div class="mat-item" onclick="pickMat('${p}','${m.code}')"><div class="mat-code">${m.code}</div><div class="mat-name">${m.name}</div><div class="mat-cat">${m.cat}</div></div>`).join('');
+  drop.classList.add('open');
+}
+function openDrop(p){if(document.getElementById(p+'MatSearch').value.trim())filterMat(p);}
+function pickMat(p,code){
+  const m=MATS.find(x=>x.code===code);
+  if(!m)return;
+  selMat[p]=m;
+  document.getElementById(p+'MatSearch').value='';
+  document.getElementById(p+'MatDrop').classList.remove('open');
+  document.getElementById(p+'SelCode').textContent=m.code;
+  document.getElementById(p+'SelName').textContent=m.name;
+  // Detectar si el material tiene conversión de unidad (ej: ROLLO→M2)
+  const conv=getEdpConv(m.code);
+  const hasConv = conv && ((conv.factor!==null && conv.edpUnit.toUpperCase()!==m.unit.toUpperCase()) || esMedidaVariable(m.code));
+  const txtEl=document.getElementById(p+'Unidad');
+  const selEl=document.getElementById(p+'UnidadSel');
+  if(hasConv){
+    // Mostrar selector con ambas unidades
+    const esVar=esMedidaVariable(m.code);
+    selEl.innerHTML=`<option value="${m.unit}">${m.unit}${esVar?' (conteo de rollos)':' (unidad de almacén)'}</option><option value="${conv.edpUnit}">${conv.edpUnit}${esVar?' (medida directa, recomendado)':' (unidad de campo/EDP)'}</option>`;
+    selEl.value=esVar?conv.edpUnit:m.unit;
+    txtEl.value=selEl.value;
+    txtEl.style.display='none';
+    selEl.style.display='block';
+    document.getElementById(p+'SelUnit').textContent=esVar?`Unidad: ${conv.edpUnit} o ${m.unit} (elige según cómo mediste este lote)`:'Unidad: '+m.unit+' / '+conv.edpUnit;
+  } else {
+    txtEl.value=m.unit;
+    txtEl.style.display='block';
+    selEl.style.display='none';
+    document.getElementById(p+'SelUnit').textContent='Unidad: '+m.unit;
+  }
+  document.getElementById(p+'MatSel').classList.add('show');
+  document.getElementById(p+'ErrMat').classList.remove('show');
+}
+function clearMat(p){
+  selMat[p]=null;
+  const txtEl=document.getElementById(p+'Unidad');
+  const selEl=document.getElementById(p+'UnidadSel');
+  txtEl.value=''; txtEl.style.display='block';
+  selEl.style.display='none';
+  document.getElementById(p+'MatSel').classList.remove('show');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.mat-wrap')) document.querySelectorAll('.mat-drop').forEach(d=>d.classList.remove('open'));
+});
+
+// ── Material manual ───────────────────────────────────────────
+function toggleMatManual(p){
+  document.getElementById(p+'MatManualWrap').style.display='block';
+  document.getElementById(p+'MatManualToggleWrap').style.display='none';
+  // hide buscador and clear selection
+  clearMat(p);
+  document.getElementById('m'+p.toUpperCase()+'E'+'MatSearch') // no-op guard
+  const search=document.getElementById(p+'MatSearch');
+  if(search){search.value='';search.closest('.mat-wrap').style.display='none';}
+  document.getElementById(p+'MatSel').classList.remove('show');
+  document.getElementById(p+'MatManualName').focus();
+}
+function cancelMatManual(p){
+  document.getElementById(p+'MatManualWrap').style.display='none';
+  document.getElementById(p+'MatManualToggleWrap').style.display='block';
+  const search=document.getElementById(p+'MatSearch');
+  if(search) search.closest('.mat-wrap').style.display='block';
+  // clear manual fields
+  ['MatManualName','MatManualCode','MatManualUnit'].forEach(f=>{
+    const el=document.getElementById(p+f); if(el) el.value='';
+  });
+}
+function isManualMat(p){
+  return document.getElementById(p+'MatManualWrap').style.display==='block';
+}
+
+
+function toggleOtroSolic(){
+  const v=document.getElementById('sSolic').value;
+  const w=document.getElementById('sOtroSolicWrap');
+  w.style.display=v==='__otro__'?'block':'none';
+  if(v==='__otro__') document.getElementById('sOtroSolic').focus();
+  else document.getElementById('sOtroSolic').value='';
+}
+function xorDocVale(filled){
+  const docEl=document.getElementById('eDoc');
+  const valeEl=document.getElementById('eVale');
+  const docLabel=document.getElementById('eDocLabel');
+  const valeLabel=document.getElementById('eValeLabel');
+  if(filled==='doc'){
+    const hasDoc=docEl.value.trim().length>0;
+    valeEl.disabled=hasDoc;
+    if(hasDoc){valeEl.value='';valeLabel.classList.add('dim');}
+    else{valeLabel.classList.remove('dim');}
+    docLabel.classList.remove('dim');
+    document.getElementById('valeOkE').classList.add('hidden');
+  } else {
+    const hasVale=valeEl.value.trim().length>0;
+    docEl.disabled=hasVale;
+    if(hasVale){docEl.value='';docLabel.classList.add('dim');}
+    else{docLabel.classList.remove('dim');}
+    valeLabel.classList.remove('dim');
+  }
+  // clear errors on both
+  document.getElementById('eErrDoc').classList.remove('show');
+  document.getElementById('eErrVale').classList.remove('show');
+  docEl.classList.remove('ferr');
+  valeEl.classList.remove('ferr');
+}
+
+function toggleOtroAut(){
+  const v=document.getElementById('sAutorizado').value;
+  const w=document.getElementById('sOtroAutWrap');
+  w.style.display=v==='__autotro__'?'block':'none';
+  if(v==='__autotro__') document.getElementById('sOtroAut').focus();
+  else document.getElementById('sOtroAut').value='';
+}
+function toggleOtroAutE(){
+  const v=document.getElementById('eAutorizado').value;
+  const w=document.getElementById('eOtroAutWrap');
+  w.style.display=v==='__eautotro__'?'block':'none';
+  if(v==='__eautotro__') document.getElementById('eOtroAut').focus();
+  else document.getElementById('eOtroAut').value='';
+}
+function checkVale(){
+  const v=document.getElementById('sVale').value.trim();
+  const ok=document.getElementById('valeOk');
+  if(v.length>=3){
+    ok.classList.remove('hidden');
+    document.getElementById('valeOkTxt').textContent='Vale "'+v+'" ingresado — verifica que coincida con el documento físico.';
+    document.getElementById('sErrVale').classList.remove('show');
+    document.getElementById('sVale').classList.remove('ferr');
+  } else {ok.classList.add('hidden');}
+}
+function checkValeE(){
+  const v=document.getElementById('eVale').value.trim();
+  const ok=document.getElementById('valeOkE');
+  if(v.length>=3){
+    ok.classList.remove('hidden');
+    document.getElementById('valeOkETxt').textContent='Vale "'+v+'" ingresado — verifica que coincida con el documento físico.';
+    document.getElementById('eErrVale').classList.remove('show');
+    document.getElementById('eVale').classList.remove('ferr');
+  } else {ok.classList.add('hidden');}
+}
+
+// ── Validación ───────────────────────────────────────────────
+function clrErr(){
+  document.querySelectorAll('.err').forEach(e=>e.classList.remove('show'));
+  document.querySelectorAll('.ferr').forEach(e=>e.classList.remove('ferr'));
+}
+function showErr(eid,fid){
+  document.getElementById(eid).classList.add('show');
+  if(fid) document.getElementById(fid).classList.add('ferr');
+}
+
+// ── Submit ───────────────────────────────────────────────────
+function submit(p){
+  clrErr();
+  let ok=true;
+  if(!selMat[p] && !isManualMat(p)){showErr(p+'ErrMat');ok=false;}
+  if(isManualMat(p)){
+    if(!document.getElementById(p+'MatManualName').value.trim()){showErr(p+'ErrManualName',p+'MatManualName');ok=false;}
+    if(!document.getElementById(p+'MatManualUnit').value.trim()){showErr(p+'ErrManualUnit',p+'MatManualUnit');ok=false;}
+  }
+  const cant=parseFloat(document.getElementById(p+'Cant').value);
+  if(!cant||cant<=0){showErr(p+'ErrCant',p+'Cant');ok=false;}
+  if(p==='e'){
+    const docVal=document.getElementById('eDoc').value.trim();
+    const valeVal=document.getElementById('eVale').value.trim();
+    if(!docVal&&!valeVal){showErr('eErrDoc','eDoc');showErr('eErrVale','eVale');ok=false;}
+    const procVal=document.getElementById('eProcedencia').value;
+    const areaVal=document.getElementById('eArea').value;
+    if(!procVal&&!areaVal){document.getElementById('eErrOrigen').classList.add('show');ok=false;}
+    if(!document.getElementById('eRecib').value){showErr('eErrRecib','eRecib');ok=false;}
+    const eAutVal=document.getElementById('eAutorizado').value;
+    const eAutManual=document.getElementById('eOtroAut').value.trim();
+    if(!eAutVal){showErr('eErrAut','eAutorizado');ok=false;}
+    else if(eAutVal==='__eautotro__'&&!eAutManual){showErr('eErrAut','eOtroAut');ok=false;}
+  } else {
+    if(!document.getElementById('sArea').value){showErr('sErrArea','sArea');ok=false;}
+    if(!document.getElementById('sSector').value){showErr('sErrSector','sSector');ok=false;}
+    if(!document.getElementById('sFrente').value){showErr('sErrFrente','sFrente');ok=false;}
+    const solicVal=document.getElementById('sSolic').value;
+    const solicManual=document.getElementById('sOtroSolic').value.trim();
+    if(!solicVal){showErr('sErrSolic','sSolic');ok=false;}
+    else if(solicVal==='__otro__'&&!solicManual){showErr('sErrSolic','sOtroSolic');ok=false;}
+    if(!document.getElementById('sVale').value.trim()){showErr('sErrVale','sVale');ok=false;}
+    const autVal=document.getElementById('sAutorizado').value;
+    const autManual=document.getElementById('sOtroAut').value.trim();
+    if(!autVal){showErr('sErrAut','sAutorizado');ok=false;}
+    else if(autVal==='__autotro__'&&!autManual){showErr('sErrAut','sOtroAut');ok=false;}
+  }
+  if(!ok)return;
+
+  const getMatField=(p,field)=>{
+    if(isManualMat(p)){
+      if(field==='code') return document.getElementById(p+'MatManualCode').value.trim()||'MANUAL';
+      if(field==='name') return document.getElementById(p+'MatManualName').value.trim();
+      if(field==='unit') return document.getElementById(p+'MatManualUnit').value.trim();
+    }
+    if(field==='unit'){
+      const selEl=document.getElementById(p+'UnidadSel');
+      if(selEl && selEl.style.display!=='none') return selEl.value;
+      return document.getElementById(p+'Unidad').value||selMat[p]?.unit||'';
+    }
+    return selMat[p]?.[field]||'';
+  };
+  const ts=Date.now();
+  const getSolic=()=>document.getElementById('sSolic').value==='__otro__'?document.getElementById('sOtroSolic').value.trim():document.getElementById('sSolic').value;
+  const getAut=()=>document.getElementById('sAutorizado').value==='__autotro__'?document.getElementById('sOtroAut').value.trim():document.getElementById('sAutorizado').value;
+
+  // ── Conversión de unidad al guardar ─────────────────────────
+  // Si registró en unidad almacén (ej ROLLO) y el stock se lleva en unidad EDP (ej M2),
+  // convertimos automáticamente para que el stock siempre use una sola unidad base.
+  let cantFinal = cant;
+  let unidadFinal = getMatField(p,'unit');
+  let notaConv = '';
+  if(selMat[p]){
+    const conv = getEdpConv(selMat[p].code);
+    if(conv && conv.factor !== null){
+      const uBase = conv.edpUnit.toUpperCase();
+      const uAlm  = selMat[p].unit.toUpperCase();
+      if(unidadFinal.toUpperCase() === uAlm && uAlm !== uBase){
+        cantFinal = +(cant * conv.factor).toFixed(4);
+        notaConv  = `Orig: ${cant} ${uAlm} × ${conv.factor} = ${cantFinal} ${uBase}`;
+        unidadFinal = uBase;
+      }
+    }
+  }
+
+  const reg=p==='e'?{
+    id:ts, tipo:'ENTRADA',
+    fecha:document.getElementById('eFecha').value,
+    hora:document.getElementById('eHora').value,
+    codigo:getMatField('e','code'), material:getMatField('e','name'), unidad:unidadFinal,
+    cantidad:cantFinal, notaConv:notaConv,
+    documento:document.getElementById('eDoc').value.trim(),
+    procedencia:document.getElementById('eProcedencia').value,
+    area:document.getElementById('eArea').value,
+    sector:document.getElementById('eSector').value,
+    frente:document.getElementById('eFrente').value,
+    recibido:document.getElementById('eRecib').value,
+    vale:document.getElementById('eVale').value.trim(),
+    autorizado:(document.getElementById('eAutorizado').value==='__eautotro__'?document.getElementById('eOtroAut').value.trim():document.getElementById('eAutorizado').value),
+    solicitante:'', entregado:'',
+    obs:document.getElementById('eObs').value.trim()
+  }:{
+    id:ts, tipo:'SALIDA',
+    fecha:document.getElementById('sFecha').value,
+    hora:document.getElementById('sHora').value,
+    codigo:getMatField('s','code'), material:getMatField('s','name'), unidad:unidadFinal,
+    cantidad:cantFinal, notaConv:notaConv,
+    documento:'', procedencia:'', recibido:'',
+    area:document.getElementById('sArea').value,
+    sector:document.getElementById('sSector').value,
+    frente:document.getElementById('sFrente').value,
+    solicitante:getSolic(),
+    vale:document.getElementById('sVale').value.trim(),
+    autorizado:getAut(),
+    entregado:document.getElementById('sEntreg').value,
+    obs:document.getElementById('sObs').value.trim()
+  };
+
+  const arr=loadRegs();
+  arr.unshift(reg);
+  saveRegs(arr);
+  updateBadge();
+
+  showModal(p,reg);
+}
+
+// ── Modal ─────────────────────────────────────────────────────
+function showModal(p,r){
+  const isE=p==='e';
+  document.getElementById('mIco').textContent=isE?'📦':'🚧';
+  document.getElementById('mIco').className='modal-ico '+(isE?'e':'s');
+  document.getElementById('mTitle').textContent=isE?'Entrada registrada':'Salida registrada';
+  document.getElementById('mSub').textContent=isE?'Material ingresado al almacén correctamente.':'Salida registrada correctamente.';
+  const lines=isE
+    ?`<b>Tipo:</b> ENTRADA<br><b>Fecha:</b> ${r.fecha} ${r.hora}<br><b>Material:</b> [${r.codigo}] ${r.material}<br><b>Cantidad:</b> ${r.cantidad} ${r.unidad}${r.notaConv?' <span style=\'color:#7c3aed;font-size:11px\'>('+r.notaConv+')</span>':''}<br><b>Documento:</b> ${r.documento||r.vale}<br>${r.procedencia?`<b>Procedencia:</b> ${r.procedencia}`:`<b>Ubicación:</b> ${r.area} › ${r.sector} › ${r.frente}`}<br><b>Recibido por:</b> ${r.recibido}<br><b>Autorizado por:</b> ${r.autorizado}`
+    :`<b>Tipo:</b> SALIDA<br><b>Fecha:</b> ${r.fecha} ${r.hora}<br><b>Material:</b> [${r.codigo}] ${r.material}<br><b>Cantidad:</b> ${r.cantidad} ${r.unidad}<br><b>Ubicación:</b> ${r.area} › ${r.sector} › ${r.frente}<br><b>Solicitado por:</b> ${r.solicitante}<br><b>Vale N°:</b> ${r.vale}<br><b>Autorizado por:</b> ${r.autorizado}`;
+  document.getElementById('mSum').innerHTML=lines;
+  document.getElementById('modalBg').classList.add('show');
+}
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('show');
+  resetForm(tab);
+}
+function resetForm(p){
+  clearMat(p);
+  cancelMatManual(p);
+  ['Cant','Doc','Recib','Obs'].forEach(f=>{const el=document.getElementById(p+f);if(el)el.value='';});
+  const ep=document.getElementById('eProcedencia');if(ep){ep.value='';ep.disabled=false;}
+  const eArea=document.getElementById('eArea');if(eArea){eArea.value='';eArea.disabled=false;}
+  const eSec=document.getElementById('eSector');if(eSec){eSec.innerHTML='<option value="">— Sector —</option>';eSec.disabled=true;}
+  const eFrt=document.getElementById('eFrente');if(eFrt){eFrt.innerHTML='<option value="">— Frente —</option>';eFrt.disabled=true;}
+  const epl=document.getElementById('eProcLabel');if(epl)epl.classList.remove('dim');
+  const eul=document.getElementById('eUbicLabel');if(eul)eul.classList.remove('dim');
+  document.getElementById('eErrOrigen').classList.remove('show');
+  const ev=document.getElementById('eVale');if(ev){ev.value='';ev.disabled=false;}
+  const edoc=document.getElementById('eDoc');if(edoc){edoc.value='';edoc.disabled=false;}
+  const edl=document.getElementById('eDocLabel');if(edl)edl.classList.remove('dim');
+  const evl=document.getElementById('eValeLabel');if(evl)evl.classList.remove('dim');
+  const ea=document.getElementById('eAutorizado');if(ea)ea.value='';
+  const eaw=document.getElementById('eOtroAutWrap');if(eaw)eaw.style.display='none';
+  const eoa=document.getElementById('eOtroAut');if(eoa)eoa.value='';
+  const voe=document.getElementById('valeOkE');if(voe)voe.classList.add('hidden');
+  const sa=document.getElementById('sArea');if(sa){sa.value='';updateSectores();}
+  const ss=document.getElementById('sSolic');if(ss)ss.value='';
+  const sw=document.getElementById('sOtroSolicWrap');if(sw)sw.style.display='none';
+  const os=document.getElementById('sOtroSolic');if(os)os.value='';
+  const sA=document.getElementById('sAutorizado');if(sA)sA.value='';
+  const aw=document.getElementById('sOtroAutWrap');if(aw)aw.style.display='none';
+  const oa=document.getElementById('sOtroAut');if(oa)oa.value='';
+  const sv=document.getElementById('sVale');if(sv)sv.value='';
+  const se=document.getElementById('sEntreg');if(se)se.value='';
+  const vo=document.getElementById('valeOk');if(vo)vo.classList.add('hidden');
+  setNow(p);
+  clrErr();
+}
+
+// ── Panel registros ───────────────────────────────────────────
+function renderRegs(){
+  const arr=loadRegs();
+  const el=document.getElementById('regList');
+  document.getElementById('regTitle').textContent='Movimientos ('+arr.length+')';
+  if(!arr.length){
+    el.innerHTML='<div class="empty">Sin registros aún.<br><br>Registra una entrada o salida para comenzar.</div>';
+    return;
+  }
+  // Mostrar más recientes primero
+  const reversed=[...arr].map((r,i)=>({...r,_idx:i})).reverse();
+  el.innerHTML=reversed.map((r,pos)=>`
+    <div class="reg-card ${r.tipo[0]}">
+      <div class="reg-top">
+        <span class="reg-tipo ${r.tipo[0]}">${r.tipo}</span>
+        <span class="reg-num">#${r._idx+1}</span>
+        <span class="reg-fecha">${r.fecha} ${r.hora}</span>
+        <button class="reg-del-btn" onclick="askDelete(${r._idx})" title="Borrar este registro">🗑</button>
+      </div>
+      <div class="reg-mat"><span class="reg-cod">${r.codigo}</span>${r.material}</div>
+      <div class="reg-details">
+        <b>Cantidad:</b> ${r.cantidad} ${r.unidad}
+        ${r.documento?`&nbsp;·&nbsp;<b>Doc:</b> ${r.documento}`:''}
+        ${r.procedencia?`&nbsp;·&nbsp;<b>Procedencia:</b> ${r.procedencia}`:''}
+        ${r.recibido?`&nbsp;·&nbsp;<b>Recibió:</b> ${r.recibido}`:''}
+        ${r.area?`<br><b>Ubicación:</b> ${r.area} › ${r.sector} › ${r.frente}`:''}
+        ${r.solicitante?`&nbsp;·&nbsp;<b>Solicitó:</b> ${r.solicitante}`:''}
+        ${r.vale?`<br><b>🔏 Vale:</b> ${r.vale}&nbsp;·&nbsp;<b>Autorizado por:</b> ${r.autorizado}`:''}
+        ${r.obs?`<br><b>Obs:</b> ${r.obs}`:''}
+        ${r.notaConv?`<br><span style="font-size:10px;color:#7c3aed;background:#f5f3ff;padding:2px 6px;border-radius:5px">🔄 ${r.notaConv}</span>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ── Borrar registro ───────────────────────────────────────────
+let _pendingDelIdx=null;
+
+function askDelete(idx){
+  const arr=loadRegs();
+  const r=arr[idx];
+  if(!r) return;
+  _pendingDelIdx=idx;
+  document.getElementById('modalDelInfo').textContent=
+    'Esta acción borrará el registro #'+(idx+1)+' de forma permanente del dispositivo. El stock se recalculará automáticamente.';
+  document.getElementById('modalDelSum').innerHTML=
+    `<b>${r.tipo}</b> &nbsp;·&nbsp; ${r.fecha} ${r.hora}<br>`+
+    `<b>Material:</b> <span style="font-family:monospace;color:var(--blue-mid)">${r.codigo}</span> ${r.material}<br>`+
+    `<b>Cantidad:</b> ${r.cantidad} ${r.unidad}`+
+    (r.documento?`<br><b>Doc:</b> ${r.documento}`:'')+
+    (r.vale?`<br><b>Vale:</b> ${r.vale}`:'');
+  document.getElementById('modalDelBg').classList.add('show');
+}
+
+function closeDelModal(){
+  _pendingDelIdx=null;
+  document.getElementById('modalDelBg').classList.remove('show');
+}
+
+function confirmDelete(){
+  if(_pendingDelIdx===null) return;
+  const arr=loadRegs();
+  arr.splice(_pendingDelIdx,1);
+  saveRegs(arr);
+  _pendingDelIdx=null;
+  document.getElementById('modalDelBg').classList.remove('show');
+  updateBadge();
+  renderRegs();
+}
+
+// ── Exportar CSV ──────────────────────────────────────────────
+function exportCSV(){
+  const arr=loadRegs();
+  if(!arr.length){alert('No hay registros para exportar.');return;}
+  const cols=['TIPO','FECHA','HORA','CODIGO','MATERIAL','UNIDAD','CANTIDAD','DOCUMENTO','PROCEDENCIA','RECIBIDO_POR','AREA','SECTOR','FRENTE','SOLICITADO_POR','VALE_N','AUTORIZADO_POR','ENTREGADO_POR','OBSERVACIONES'];
+  const rows=arr.map(r=>[
+    r.tipo,r.fecha,r.hora,r.codigo,
+    '"'+r.material.replace(/"/g,'""')+'"',
+    r.unidad,r.cantidad,r.documento,r.procedencia,r.recibido,
+    r.area,r.sector,r.frente,r.solicitante,r.vale,r.autorizado,r.entregado,
+    '"'+(r.obs||'').replace(/"/g,'""')+'"'
+  ].join(','));
+  const csv='\uFEFF'+cols.join(',')+'\n'+rows.join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='kardex_movimientos_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────
+updateBadge();
+
+// ═══════════════════════════════════════════════════════════
+//  MÓDULO DE STOCK — calcula saldo actual por material
+//  Stock actual = saldoInicial + Σ entradas registradas − Σ salidas registradas
+// ═══════════════════════════════════════════════════════════
+const STOCK_OVERRIDES_KEY='almacen_stock_overrides_v1';
+
+function loadStockOverrides(){try{return JSON.parse(localStorage.getItem(STOCK_OVERRIDES_KEY)||'{}');}catch(e){return {};}}
+function saveStockOverrides(o){localStorage.setItem(STOCK_OVERRIDES_KEY,JSON.stringify(o));}
+
+// Construye el catálogo unificado: SALDOS_INICIALES + cualquier material nuevo visto en MATS o en registros manuales
+function buildStockCatalog(){
+  const overrides=loadStockOverrides();
+  const map={}; // code -> {code,name,unit,saldoInicial,stockMinimo}
+
+  // Índice MATS por código para lookup rápido
+  const matsIdx={};
+  MATS.forEach(m=>{ matsIdx[m.code]=m; });
+
+  SALDOS_INICIALES.forEach(m=>{
+    const mat=matsIdx[m.code]||{};
+    map[m.code]={
+      code:m.code,
+      name:mat.name||m.name||m.code,
+      unit:mat.unit||m.unit||'UND',
+      saldoInicial:m.saldoInicial,
+      stockMinimo:0
+    };
+  });
+  MATS.forEach(m=>{
+    if(!map[m.code]) map[m.code]={code:m.code,name:m.name,unit:m.unit,saldoInicial:0,stockMinimo:0};
+    else { map[m.code].name=m.name; map[m.code].unit=m.unit; }
+  });
+  // Materiales ingresados manualmente en registros (no estaban en catálogo)
+  loadRegs().forEach(r=>{
+    if(r.codigo && !map[r.codigo]){
+      map[r.codigo]={code:r.codigo,name:r.material,unit:r.unidad,saldoInicial:0,stockMinimo:0};
+    }
+  });
+  // Aplicar overrides guardados manualmente
+  Object.keys(overrides).forEach(code=>{
+    if(map[code]){
+      if(overrides[code].saldoInicial!==undefined) map[code].saldoInicial=overrides[code].saldoInicial;
+      if(overrides[code].stockMinimo!==undefined) map[code].stockMinimo=overrides[code].stockMinimo;
+    }
+  });
+  return map;
+}
+
+// Normaliza un registro (entrada o salida) a sus dos representaciones:
+// {alm: cantidad en unidad de ALMACÉN, edp: cantidad en unidad EDP}.
+// Se determina según en QUÉ unidad quedó realmente guardado el registro (r.unidad),
+// no se asume nada: si coincide con la unidad de almacén, se convierte hacia EDP
+// multiplicando por el factor; si coincide con la unidad EDP, se convierte hacia
+// almacén DIVIDIENDO por el factor (nunca se multiplica dos veces por el mismo factor).
+function normalizeRegQty(r,cant,m,conv){
+  if(!m) return {alm:cant, edp:cant};
+  if(esMedidaVariable(m.code)) return {alm:cant, edp:cant}; // medida variable: siempre en M2
+
+  const almUnit=(m.unit||'').toUpperCase();
+  const runit=(r.unidad||'').toUpperCase();
+  const edpUnit=conv?(conv.edpUnit||'').toUpperCase():null;
+  const factor=conv?conv.factor:null;
+
+  // 1) Si el registro guarda la nota de conversión original (creada por submit()),
+  //    se usa el valor pre-conversión tal cual, sin recalcular.
+  if(r.notaConv){
+    const mtch=r.notaConv.match(/^Orig:\s*([\d.]+)\s+(\S+)\s*×/);
+    if(mtch) return {alm:parseFloat(mtch[1])||0, edp:cant};
+  }
+  // 2) Registrado directamente en unidad de ALMACÉN → convertir hacia EDP
+  if(runit===almUnit){
+    const edp=(factor!=null)?+(cant*factor).toFixed(4):cant;
+    return {alm:cant, edp};
+  }
+  // 3) Registrado directamente en unidad EDP (sin haber pasado por conversión automática)
+  //    → convertir hacia ALMACÉN dividiendo por el factor (NO volver a multiplicar)
+  if(edpUnit && runit===edpUnit && almUnit!==edpUnit){
+    const alm=(factor!=null && factor>0)?+(cant/factor).toFixed(4):cant;
+    return {alm, edp:cant};
+  }
+  // 4) Unidad no reconocida (material manual, etc.): usar el mismo valor para ambos
+  return {alm:cant, edp:cant};
+}
+
+// Calcula stock actual de todos los materiales en base a los registros guardados
+function calcularStock(){
+  const catalog=buildStockCatalog();
+  const regs=loadRegs();
+  const movs={}; // code -> {entradas,salidas,entradasAlm,salidasAlm,entradasEdp,salidasEdp}
+
+  regs.forEach(r=>{
+    if(!r.codigo) return;
+    if(!movs[r.codigo]) movs[r.codigo]={entradas:0,salidas:0,entradasAlm:0,salidasAlm:0,entradasEdp:0,salidasEdp:0};
+    const cant=parseFloat(r.cantidad)||0;
+    const m=catalog[r.codigo];
+    const conv=getEdpConv(r.codigo);
+    const norm=normalizeRegQty(r,cant,m,conv);
+    if(r.tipo==='ENTRADA'){
+      movs[r.codigo].entradas+=cant;
+      movs[r.codigo].entradasAlm+=norm.alm;
+      movs[r.codigo].entradasEdp+=norm.edp;
+    } else if(r.tipo==='SALIDA'){
+      movs[r.codigo].salidas+=cant;
+      movs[r.codigo].salidasAlm+=norm.alm;
+      movs[r.codigo].salidasEdp+=norm.edp;
+    }
+  });
+
+  const result=Object.values(catalog).map(m=>{
+    const mv=movs[m.code]||{entradas:0,salidas:0,entradasAlm:0,salidasAlm:0,entradasEdp:0,salidasEdp:0};
+    const stockActual=m.saldoInicial+mv.entradas-mv.salidas;
+    let estado='OK';
+    if(stockActual<=0) estado='SIN STOCK';
+    else if(m.stockMinimo>0 && stockActual<=m.stockMinimo) estado='BAJO';
+    // Conversión EDP
+    // NOTA: al registrar movimientos, si la unidad ingresada era de almacén (ej. ROLLO)
+    // y difiere de la unidad EDP (ej. M2), la conversión ya se aplica al GUARDAR el registro.
+    // Por tanto, stockActual ya está en unidad EDP. Solo aplicar factor cuando
+    // la unidad de almacén y la unidad EDP son la misma (factor sirve para otro propósito).
+    const conv=getEdpConv(m.code);
+    let stockEdp=null;
+    if(conv && conv.factor!=null){
+      const convUnit=conv.edpUnit.toUpperCase();
+      const almUnit=m.unit.toUpperCase();
+      if(almUnit !== convUnit){
+        // Unidades distintas: la conversión ya fue aplicada al guardar → mostrar stockActual directo
+        stockEdp=parseFloat(stockActual.toFixed(3));
+      } else {
+        // Misma unidad (ej. M2→M2, UND→UND con factor distinto de propósito): aplicar factor
+        stockEdp=parseFloat((stockActual*conv.factor).toFixed(3));
+      }
+    }
+
+    // ── Bloque ALMACÉN vs EDP para el reporte de stock ──────────
+    // saldoInicial / entradasAlm / salidasAlm: siempre expresados en la unidad
+    // de ALMACÉN (m.unit), reconstruyendo el valor pre-conversión cuando aplica.
+    // entradasEdp / salidasEdp: se toman DIRECTAMENTE de lo calculado registro
+    // por registro en normalizeRegQty (nunca se vuelve a multiplicar el total
+    // en ALM por el factor, evitando la doble conversión).
+    // Para materiales de medida variable (Ma_O, Ma_TT) el stock se maneja
+    // directamente en M2, así que ALM = EDP y se etiqueta con la unidad real M2.
+    const variable=esMedidaVariable(m.code);
+    const saldoInicialAlm=m.saldoInicial;
+    const entradasAlm=parseFloat(mv.entradasAlm.toFixed(3));
+    const salidasAlm=parseFloat(mv.salidasAlm.toFixed(3));
+    const stockActualAlm=parseFloat((saldoInicialAlm+entradasAlm-salidasAlm).toFixed(3));
+    const unidadAlmReporte=variable?'M2':m.unit;
+
+    let saldoInicialEdp=null, entradasEdp=null, salidasEdp=null, stockActualEdp=null, unidadEdpReporte=null, factorReporte=null;
+    if(variable){
+      // Medida variable: no hay factor fijo, ALM y EDP coinciden (ambos en M2)
+      saldoInicialEdp=saldoInicialAlm;
+      entradasEdp=parseFloat(mv.entradasEdp.toFixed(3));
+      salidasEdp=parseFloat(mv.salidasEdp.toFixed(3));
+      stockActualEdp=parseFloat((saldoInicialEdp+entradasEdp-salidasEdp).toFixed(3));
+      unidadEdpReporte='M2'; factorReporte='VARIABLE';
+    } else if(conv && conv.factor!=null){
+      saldoInicialEdp=parseFloat((saldoInicialAlm*conv.factor).toFixed(3));
+      entradasEdp=parseFloat(mv.entradasEdp.toFixed(3));
+      salidasEdp=parseFloat(mv.salidasEdp.toFixed(3));
+      stockActualEdp=parseFloat((saldoInicialEdp+entradasEdp-salidasEdp).toFixed(3));
+      unidadEdpReporte=conv.edpUnit; factorReporte=conv.factor;
+    } else if(conv){
+      factorReporte='PENDIENTE'; unidadEdpReporte=conv.edpUnit;
+    }
+
+    return {
+      code:m.code, name:m.name, unit:m.unit,
+      saldoInicial:m.saldoInicial, stockMinimo:m.stockMinimo,
+      entradas:mv.entradas, salidas:mv.salidas,
+      stockActual, estado,
+      conv, stockEdp,
+      // nuevos campos para el reporte de stock por almacén / EDP
+      unidadAlmReporte, saldoInicialAlm, entradasAlm, salidasAlm, stockActualAlm,
+      unidadEdpReporte, factorReporte, saldoInicialEdp, entradasEdp, salidasEdp, stockActualEdp
+    };
+  });
+
+  result.sort((a,b)=>a.name.localeCompare(b.name));
+  return result;
+}
+
+// ── Render de la tabla de stock con filtros ──────────────────
+function renderStock(){
+  const data=calcularStock();
+  const q=(document.getElementById('stkBuscar')?.value||'').toLowerCase().trim();
+  const filtroEstado=document.getElementById('stkFiltro')?.value||'';
+
+  const totalOk=data.filter(d=>d.estado==='OK').length;
+  const totalBajo=data.filter(d=>d.estado==='BAJO').length;
+  const totalSin=data.filter(d=>d.estado==='SIN STOCK').length;
+  document.getElementById('stkTotal').textContent=data.length;
+  document.getElementById('stkOk').textContent=totalOk;
+  document.getElementById('stkBajo').textContent=totalBajo;
+  document.getElementById('stkSin').textContent=totalSin;
+
+  let filtered=data;
+  if(q) filtered=filtered.filter(d=>d.name.toLowerCase().includes(q)||d.code.toLowerCase().includes(q));
+  if(filtroEstado) filtered=filtered.filter(d=>d.estado===(filtroEstado==='BAJO'?'BAJO':filtroEstado));
+
+  const wrap=document.getElementById('stockTableWrap');
+  if(!filtered.length){
+    wrap.innerHTML='<div class="stk-empty">Sin resultados.</div>';
+    return;
+  }
+
+  const pillClass=e=>e==='OK'?'OK':(e==='BAJO'?'BAJO':'SIN');
+  const rows=filtered.map(d=>{
+    // Determinar unidad y cantidad principal a mostrar
+    const tieneConvUnidad = d.conv && d.conv.factor!=null && d.conv.edpUnit.toUpperCase()!==d.unit.toUpperCase();
+    const tieneConvPendiente = d.conv && d.conv.factor===null && !esMedidaVariable(d.code);
+    let qtyPrincipal, unidadPrincipal, lineaSecundaria;
+    if(tieneConvUnidad){
+      // Unidades distintas (ej. ROLLO→M2): mostrar EDP como principal
+      qtyPrincipal   = d.stockEdp.toLocaleString('es-PE');
+      unidadPrincipal= d.conv.edpUnit;
+      const rollos = d.conv.factor>0 ? +(d.stockEdp/d.conv.factor).toFixed(2) : 0;
+      lineaSecundaria= `<div class="stk-conv-factor">≈ ${rollos.toLocaleString('es-PE')} ${d.unit} en almacén</div>`;
+    } else if(tieneConvPendiente){
+      qtyPrincipal   = d.stockActual.toLocaleString('es-PE');
+      unidadPrincipal= d.unit;
+      lineaSecundaria= `<div class="stk-conv" style="color:#f59e0b">⚠ Factor EDP pendiente</div>`;
+    } else if(esMedidaVariable(d.code)){
+      qtyPrincipal   = d.stockActual.toLocaleString('es-PE');
+      unidadPrincipal= d.unit;
+      lineaSecundaria= `<div class="stk-conv-factor" style="color:#7c3aed">📏 Medida variable (ROLLO/M2 según lote)</div>`;
+    } else {
+      qtyPrincipal   = d.stockActual.toLocaleString('es-PE');
+      unidadPrincipal= d.unit;
+      lineaSecundaria= '';
+    }
+    return `
+    <tr>
+      <td>
+        <div class="stk-code">${d.code}</div>
+        <div class="stk-name">${d.name}</div>
+        ${d.conv ? `<div class="stk-conv-factor" style="color:#7c3aed">EDP: ${d.conv.edpName}</div>` : ''}
+      </td>
+      <td class="stk-qty">
+        ${qtyPrincipal} <span style="font-size:10px;font-weight:600">${unidadPrincipal}</span>
+        ${lineaSecundaria}
+        <br><span class="stk-pill ${pillClass(d.estado)}">${d.estado}</span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML=`<table class="stk-table"><thead><tr><th>Material</th><th style="text-align:right">Stock</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ── Ajuste manual de saldo inicial / stock mínimo ─────────────
+function toggleAjusteSaldo(){
+  const w=document.getElementById('ajusteSaldoWrap');
+  const isOpen=w.style.display!=='none';
+  w.style.display=isOpen?'none':'block';
+  if(!isOpen) renderAjusteSaldo();
+}
+
+function renderAjusteSaldo(){
+  const data=calcularStock();
+  const w=document.getElementById('ajusteSaldoWrap');
+  const rows=data.map(d=>`
+    <div class="adj-row">
+      <div class="adj-name">${d.code}<br><span style="color:#9ca3af;font-size:10px">${d.name}</span></div>
+      <input type="number" step="0.01" data-code="${d.code}" data-field="saldoInicial" value="${d.saldoInicial}" placeholder="Saldo inicial"/>
+      <input type="number" step="0.01" data-code="${d.code}" data-field="stockMinimo" value="${d.stockMinimo}" placeholder="Stock mín."/>
+    </div>`).join('');
+  w.innerHTML=`
+    <div style="font-size:11px;color:#6b7280;margin-bottom:8px;line-height:1.6">
+      Ajusta el <b>saldo inicial</b> (lo que ya tenías antes de usar este formulario) y el <b>stock mínimo</b> (para activar la alerta "Stock bajo") de cada material.
+    </div>
+    <div style="display:grid;grid-template-columns:2.4fr 1fr 1fr;gap:6px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;padding-bottom:4px">
+      <div>Material</div><div>Saldo inicial</div><div>Stock mín.</div>
+    </div>
+    ${rows}
+    <button class="adj-save" onclick="guardarAjustesSaldo()">💾 Guardar ajustes</button>`;
+}
+
+function guardarAjustesSaldo(){
+  const overrides=loadStockOverrides();
+  document.querySelectorAll('#ajusteSaldoWrap input[data-code]').forEach(inp=>{
+    const code=inp.dataset.code, field=inp.dataset.field;
+    const val=parseFloat(inp.value)||0;
+    if(!overrides[code]) overrides[code]={};
+    overrides[code][field]=val;
+  });
+  saveStockOverrides(overrides);
+  renderStock();
+  document.getElementById('ajusteSaldoWrap').style.display='none';
+  alert('✅ Ajustes guardados.');
+}
+
+// ── Compartir stock disponible por WhatsApp ───────────────────
+function compartirStockWSP(){
+  const data = calcularStock();
+  // Solo materiales con stock > 0
+  const disponibles = data.filter(d => {
+    const qty = (d.conv && d.conv.factor != null && d.conv.edpUnit.toUpperCase() !== d.unit.toUpperCase())
+      ? d.stockEdp
+      : d.stockActual;
+    return qty > 0;
+  });
+
+  if(!disponibles.length){
+    alert('No hay materiales con stock disponible para reportar.');
+    return;
+  }
+
+  const now = new Date();
+  const fecha = now.toLocaleDateString('es-PE',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const hora  = now.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+
+  // Agrupar por categoría (usando MATS como referencia)
+  const matsIdx = {};
+  MATS.forEach(m => { matsIdx[m.code] = m; });
+
+  const porCat = {};
+  disponibles.forEach(d => {
+    const cat = (matsIdx[d.code]?.cat) || 'OTROS';
+    if(!porCat[cat]) porCat[cat] = [];
+
+    const tieneConvUnidad = d.conv && d.conv.factor != null && d.conv.edpUnit.toUpperCase() !== d.unit.toUpperCase();
+    let qty, unidad;
+    if(tieneConvUnidad){
+      qty    = parseFloat(d.stockEdp.toFixed(2));
+      unidad = d.conv.edpUnit;
+    } else {
+      qty    = parseFloat(d.stockActual.toFixed(2));
+      unidad = d.unit;
+    }
+    porCat[cat].push({ name: d.name, qty, unidad });
+  });
+
+  let lineas = [];
+  lineas.push('📦 *STOCK DISPONIBLE – ALMACÉN TALUD*');
+  lineas.push(`📅 ${fecha}  🕐 ${hora}`);
+  lineas.push('─────────────────────────');
+
+  Object.keys(porCat).sort().forEach(cat => {
+    lineas.push(`\n*${cat}*`);
+    porCat[cat].forEach(m => {
+      lineas.push(`  • ${m.name}: *${m.qty.toLocaleString('es-PE')} ${m.unidad}*`);
+    });
+  });
+
+  lineas.push('\n─────────────────────────');
+  lineas.push(`_Total: ${disponibles.length} material(es) con stock_`);
+
+  const texto = lineas.join('\n');
+
+  navigator.clipboard.writeText(texto).then(()=>{
+    const msg = document.getElementById('wspCopiadoMsg');
+    msg.style.display = 'block';
+    setTimeout(()=>{ msg.style.display = 'none'; }, 4000);
+  }).catch(()=>{
+    // Fallback: mostrar en textarea para copiar manualmente
+    const ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:90%;max-width:400px;height:60vh;z-index:9999;padding:12px;font-size:13px;border:2px solid #25D366;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+    document.body.appendChild(ta);
+    ta.select();
+    const btn = document.createElement('button');
+    btn.textContent = '✖ Cerrar';
+    btn.style.cssText = 'position:fixed;top:calc(50% - 30vh - 36px);left:50%;transform:translateX(-50%);z-index:10000;padding:8px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer';
+    btn.onclick = ()=>{ document.body.removeChild(ta); document.body.removeChild(btn); };
+    document.body.appendChild(btn);
+    alert('Selecciona todo el texto en el cuadro y cópialo manualmente (Ctrl+A, Ctrl+C).');
+  });
+}
+
+// ── Ajuste manual de factores de conversión EDP ───────────────
+function toggleAjusteConv(){
+  const w=document.getElementById('ajusteConvWrap');
+  const isOpen=w.style.display!=='none';
+  w.style.display=isOpen?'none':'block';
+  if(!isOpen) renderAjusteConv();
+}
+
+function renderAjusteConv(){
+  const overrides=loadConvOverrides();
+  const w=document.getElementById('ajusteConvWrap');
+  // Solo materiales con entrada en EDP_MAP, excluyendo los de medida variable
+  // (esos usan selector ROLLO/M2 por lote, no un factor fijo)
+  const items=Object.entries(EDP_MAP).filter(([code])=>!esMedidaVariable(code)).map(([code,conv])=>{
+    const factorActual=overrides[code]!==undefined?overrides[code]:conv.factor;
+    const mat=MATS.find(m=>m.code===code)||{name:code,unit:'UND'};
+    const pendiente=conv.factor===null&&overrides[code]===undefined;
+    return {code,conv,factorActual,mat,pendiente};
+  });
+  const varRows=UNIDAD_VARIABLE.map(code=>{
+    const conv=EDP_MAP[code]; const mat=MATS.find(m=>m.code===code)||{name:code,unit:'UND'};
+    if(!conv||!mat) return '';
+    return `<div class="adj-row-conv" style="background:#f5f3ff">
+      <div class="adj-name">
+        <span style="font-family:monospace;color:var(--blue-mid);font-size:10px">${code}</span><br>
+        <span style="color:#9ca3af;font-size:9.5px">${mat.unit} / ${conv.edpUnit}</span>
+      </div>
+      <div style="font-size:10px;color:#374151;line-height:1.4">${conv.edpName}</div>
+      <div style="font-size:9.5px;color:#7c3aed;font-weight:600">📏 Medida variable</div>
+      <div></div>
+    </div>`;
+  }).join('');
+  const rows=items.map(({code,conv,factorActual,mat,pendiente})=>`
+    <div class="adj-row-conv" style="${pendiente?'background:#fffbeb':''}" >
+      <div class="adj-name">
+        <span style="font-family:monospace;color:var(--blue-mid);font-size:10px">${code}</span><br>
+        <span style="color:#9ca3af;font-size:9.5px">${mat.unit} → ${conv.edpUnit}</span>
+      </div>
+      <div style="font-size:10px;color:#374151;line-height:1.4">${conv.edpName}</div>
+      <input type="number" step="0.001" min="0.001"
+        data-code="${code}"
+        value="${factorActual!==null?factorActual:''}"
+        placeholder="${pendiente?'⚠ Definir':'factor'}"
+        style="${pendiente?'border-color:#f59e0b':''}"
+        title="1 ${mat.unit} de almacén = X ${conv.edpUnit} en EDP"/>
+      <div style="font-size:9.5px;color:#9ca3af;line-height:1.4">× factor<br>= ${conv.edpUnit}</div>
+    </div>`).join('');
+
+  w.innerHTML=`
+    <div style="font-size:11px;color:#6b7280;margin-bottom:8px;line-height:1.6">
+      Factor de conversión: <b>1 unidad de almacén = X unidades EDP</b>. Ej: 1 ROLLO de Malla 2.3×20m = <b>46 M2</b>.<br>
+      Los marcados en amarillo aún no tienen factor definido.<br>
+      Los marcados en morado (📏 Medida variable) no usan factor fijo: en cada ingreso/salida se elige la unidad ROLLO o M2 directamente, ya que el tamaño del rollo cambia según el lote.
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 2.5fr 1fr 0.6fr;gap:6px;font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;padding-bottom:4px">
+      <div>Código almacén</div><div>Nombre EDP</div><div>Factor</div><div></div>
+    </div>
+    ${rows}
+    ${varRows}
+    <button class="adj-save" style="background:#7c3aed" onclick="guardarAjusteConv()">💾 Guardar factores</button>`;
+}
+
+function guardarAjusteConv(){
+  const overrides=loadConvOverrides();
+  document.querySelectorAll('#ajusteConvWrap input[data-code]').forEach(inp=>{
+    const code=inp.dataset.code;
+    const val=parseFloat(inp.value);
+    if(!isNaN(val)&&val>0) overrides[code]=val;
+  });
+  saveConvOverrides(overrides);
+  renderStock();
+  document.getElementById('ajusteConvWrap').style.display='none';
+  alert('✅ Factores de conversión guardados.');
+}
+
+// ── Exportar Stock a Excel (.xls vía tabla HTML, abre nativo en Excel) ──
+function exportStockExcel(){
+  const data=calcularStock();
+  if(!data.length){alert('No hay datos de stock para exportar.');return;}
+
+  const headerRow=`<tr style="background:#1e3a5f;color:#fff;font-weight:bold">
+    <th>CODIGO_ALM</th><th>MATERIAL_ALMACEN</th><th>UNIDAD_ALM</th>
+    <th>SALDO_INICIAL_ALM</th><th>INGRESO_ALM</th><th>SALIDA_ALM</th>
+    <th>STOCK_ACTUAL_ALM</th><th>STOCK_MINIMO</th><th>ESTADO</th>
+    <th style="background:#4c1d95">CODIGO_EDP</th><th style="background:#4c1d95">NOMBRE_EDP</th>
+    <th style="background:#4c1d95">UNIDAD_EDP</th><th style="background:#4c1d95">FACTOR_CONV</th>
+    <th style="background:#4c1d95">SALDO_INICIAL_EDP</th><th style="background:#4c1d95">INGRESO_EDP</th>
+    <th style="background:#4c1d95">SALIDA_EDP</th><th style="background:#4c1d95">STOCK_ACTUAL_EDP</th></tr>`;
+
+  const bodyRows=data.map(d=>{
+    const bg=d.estado==='SIN STOCK'?'#fee2e2':(d.estado==='BAJO'?'#fef3c7':'#dcfce7');
+    const edpCols = d.conv
+      ? `<td>${d.conv.edpCode}</td><td>${d.conv.edpName}</td><td>${d.unidadEdpReporte||'—'}</td>
+         <td>${d.factorReporte!==null?d.factorReporte:'—'}</td>
+         <td>${d.saldoInicialEdp!==null?d.saldoInicialEdp:'—'}</td>
+         <td>${d.entradasEdp!==null?d.entradasEdp:'—'}</td>
+         <td>${d.salidasEdp!==null?d.salidasEdp:'—'}</td>
+         <td style="font-weight:bold">${d.stockActualEdp!==null?d.stockActualEdp:'—'}</td>`
+      : `<td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>`;
+    return `<tr style="background:${bg}">
+      <td>${d.code}</td><td>${d.name}</td><td>${d.unidadAlmReporte}</td>
+      <td>${d.saldoInicialAlm}</td><td>${d.entradasAlm}</td><td>${d.salidasAlm}</td>
+      <td style="font-weight:bold">${d.stockActualAlm}</td><td>${d.stockMinimo}</td><td>${d.estado}</td>
+      ${edpCols}
+    </tr>`;
+  }).join('');
+
+  const titleRow=`<tr><td colspan="17" style="font-size:16px;font-weight:bold;padding:8px">
+    CONTROL DE STOCK - TALUD — ${new Date().toLocaleDateString('es-PE')}</td></tr>`;
+
+  const html=`
+    <html xmlns:x="urn:schemas-microsoft-com:office:excel">
+    <head><meta charset="UTF-8">
+    <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>
+    <x:Name>STOCK_MATERIALES</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+    </x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+    </head><body>
+    <table border="1" style="border-collapse:collapse;font-family:Calibri;font-size:12px">
+    ${titleRow}${headerRow}${bodyRows}
+    </table></body></html>`;
+
+  const blob=new Blob(['\ufeff'+html],{type:'application/vnd.ms-excel'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Stock_Talud_'+new Date().toISOString().split('T')[0]+'.xls';
+  a.click();
+}
+
+// ════════════════════════════════════════════════════════════
+//  SISTEMA MULTI-ÍTEM (hasta 20 por guía / vale)
+// ════════════════════════════════════════════════════════════
+
+const MAX_ITEMS = 20;
+// Estado de ítems por panel: {e: [{mat, cant, unidad},...], s: [...]}
+const itemState = {e:[], s:[]};
+
+// ── Inicializar filas al cargar ──────────────────────────────
+function initItemRows(p){
+  itemState[p] = [];
+  const wrap = document.getElementById(p+'ItemsWrap');
+  wrap.innerHTML = '';
+  addItemRow(p);
+}
+
+// ── Agregar una fila de ítem ─────────────────────────────────
+function addItemRow(p){
+  if(itemState[p].length >= MAX_ITEMS) return;
+  const idx = itemState[p].length;
+  itemState[p].push({mat:null, cant:'', unidad:''});
+  const wrap = document.getElementById(p+'ItemsWrap');
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.id = p+'Row'+idx;
+  row.innerHTML = buildRowHTML(p, idx);
+  wrap.appendChild(row);
+  updateItemCount(p);
+  // Focus al buscador del nuevo ítem
+  setTimeout(()=>{ const el=document.getElementById(p+'ISearch'+idx); if(el) el.focus(); }, 80);
+}
+
+// ── HTML de una fila ─────────────────────────────────────────
+function buildRowHTML(p, idx){
+  return `
+    <div class="item-mat-wrap" id="${p}IMatWrap${idx}">
+      <span class="item-search-ico">🔍</span>
+      <input class="item-search" id="${p}ISearch${idx}" type="text"
+        placeholder="Código o nombre…" autocomplete="off"
+        oninput="filterItemDrop('${p}',${idx})"
+        onfocus="openItemDrop('${p}',${idx})"/>
+      <div class="item-drop" id="${p}IDrop${idx}"></div>
+      <div id="${p}ISelWrap${idx}" style="display:none;margin-top:4px"></div>
+    </div>
+    <input class="item-cant" id="${p}ICant${idx}" type="number" min="0.001" step="0.001" placeholder="0"
+      oninput="onCantChange('${p}',${idx})"/>
+    <div id="${p}IUnitWrap${idx}">
+      <div class="item-unit" id="${p}IUnitTxt${idx}">—</div>
+    </div>
+    <button class="item-del-btn" onclick="removeItemRow('${p}',${idx})" title="Quitar ítem">✕</button>`;
+}
+
+// ── Quitar fila ──────────────────────────────────────────────
+function removeItemRow(p, idx){
+  if(itemState[p].length <= 1) return; // al menos 1 fila
+  itemState[p].splice(idx, 1);
+  renderAllRows(p);
+}
+
+// Re-renderiza todas las filas (tras borrar una)
+function renderAllRows(p){
+  const wrap = document.getElementById(p+'ItemsWrap');
+  wrap.innerHTML = '';
+  const saved = itemState[p].slice();
+  itemState[p] = [];
+  saved.forEach((_,i)=>{
+    itemState[p].push(saved[i]);
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    row.id = p+'Row'+i;
+    row.innerHTML = buildRowHTML(p, i);
+    wrap.appendChild(row);
+    // Restaurar material seleccionado si había
+    if(saved[i].mat) restoreItemSel(p, i, saved[i].mat, saved[i].unidad);
+    if(saved[i].cant) document.getElementById(p+'ICant'+i).value = saved[i].cant;
+  });
+  updateItemCount(p);
+}
+
+function restoreItemSel(p, idx, mat, unidad){
+  const selWrap = document.getElementById(p+'ISelWrap'+idx);
+  const searchEl = document.getElementById(p+'ISearch'+idx);
+  const matWrap  = document.getElementById(p+'IMatWrap'+idx);
+  selWrap.style.display = 'block';
+  searchEl.style.display = 'none';
+  selWrap.innerHTML = buildSelBadge(p, idx, mat);
+  // Restore unit
+  const unitWrap = document.getElementById(p+'IUnitWrap'+idx);
+  const conv = getEdpConv(mat.code);
+  const hasConv = conv && ((conv.factor!==null && conv.edpUnit.toUpperCase()!==mat.unit.toUpperCase()) || esMedidaVariable(mat.code));
+  if(hasConv){
+    unitWrap.innerHTML = buildUnitSelect(p, idx, mat.unit, conv.edpUnit, unidad);
+  } else {
+    unitWrap.innerHTML = `<div class="item-unit" id="${p}IUnitTxt${idx}">${mat.unit}</div>`;
+  }
+}
+
+// ── Filtrar dropdown de material ─────────────────────────────
+function filterItemDrop(p, idx){
+  const q = document.getElementById(p+'ISearch'+idx).value.toLowerCase().trim();
+  const drop = document.getElementById(p+'IDrop'+idx);
+  if(!q){ drop.innerHTML=''; drop.classList.remove('open'); return; }
+  const res = MATS.filter(m=>
+    m.code.toLowerCase().includes(q)||
+    m.name.toLowerCase().includes(q)||
+    m.cat.toLowerCase().includes(q)
+  ).slice(0,12);
+  if(!res.length){
+    drop.innerHTML='<div style="padding:9px;color:#9ca3af;font-size:12px;text-align:center">Sin resultados</div>';
+    drop.classList.add('open');
+    return;
+  }
+  drop.innerHTML = res.map(m=>`
+    <div class="item-drop-item" onclick="pickItemMat('${p}',${idx},'${m.code}')">
+      <div class="item-drop-code">${m.code}</div>
+      <div class="item-drop-name">${m.name}</div>
+    </div>`).join('');
+  drop.classList.add('open');
+}
+
+function openItemDrop(p, idx){
+  const q = document.getElementById(p+'ISearch'+idx)?.value||'';
+  if(q.trim()) filterItemDrop(p, idx);
+}
+
+// ── Seleccionar material en una fila ─────────────────────────
+function pickItemMat(p, idx, code){
+  const m = MATS.find(x=>x.code===code);
+  if(!m) return;
+  itemState[p][idx].mat = m;
+  itemState[p][idx].unidad = m.unit;
+
+  const drop    = document.getElementById(p+'IDrop'+idx);
+  const selWrap = document.getElementById(p+'ISelWrap'+idx);
+  const searchEl= document.getElementById(p+'ISearch'+idx);
+  const unitWrap= document.getElementById(p+'IUnitWrap'+idx);
+
+  drop.classList.remove('open');
+  selWrap.innerHTML = buildSelBadge(p, idx, m);
+  selWrap.style.display = 'block';
+  searchEl.style.display = 'none';
+
+  // Unidad
+  const conv = getEdpConv(m.code);
+  const hasConv = conv && ((conv.factor!==null && conv.edpUnit.toUpperCase()!==m.unit.toUpperCase()) || esMedidaVariable(m.code));
+  if(hasConv){
+    const defUnit = esMedidaVariable(m.code) ? conv.edpUnit : m.unit;
+    itemState[p][idx].unidad = defUnit;
+    unitWrap.innerHTML = buildUnitSelect(p, idx, m.unit, conv.edpUnit, defUnit);
+  } else {
+    unitWrap.innerHTML = `<div class="item-unit" id="${p}IUnitTxt${idx}">${m.unit}</div>`;
+  }
+
+  // Focus cantidad
+  setTimeout(()=>{ const c=document.getElementById(p+'ICant'+idx); if(c) c.focus(); }, 60);
+  document.getElementById(p+'ErrMat').classList.remove('show');
+}
+
+function buildSelBadge(p, idx, m){
+  return `<div class="item-sel-badge" onclick="clearItemMat('${p}',${idx})">
+    <span class="icode">${m.code}</span>
+    <span class="iname">${m.name}</span>
+    <span class="clr">✕</span>
+  </div>`;
+}
+
+function buildUnitSelect(p, idx, almUnit, edpUnit, currentVal){
+  return `<select class="item-unit" id="${p}IUnitSel${idx}"
+    onchange="itemState['${p}'][${idx}].unidad=this.value">
+    <option value="${almUnit}"${currentVal===almUnit?' selected':''}>${almUnit}</option>
+    <option value="${edpUnit}"${currentVal===edpUnit?' selected':''}>${edpUnit}</option>
+  </select>`;
+}
+
+// ── Limpiar material de una fila ─────────────────────────────
+function clearItemMat(p, idx){
+  itemState[p][idx].mat = null;
+  itemState[p][idx].unidad = '';
+  const selWrap = document.getElementById(p+'ISelWrap'+idx);
+  const searchEl= document.getElementById(p+'ISearch'+idx);
+  const unitWrap= document.getElementById(p+'IUnitWrap'+idx);
+  selWrap.style.display = 'none';
+  selWrap.innerHTML = '';
+  searchEl.style.display = 'block';
+  searchEl.value = '';
+  unitWrap.innerHTML = `<div class="item-unit" id="${p}IUnitTxt${idx}">—</div>`;
+  searchEl.focus();
+}
+
+function onCantChange(p, idx){
+  itemState[p][idx].cant = document.getElementById(p+'ICant'+idx)?.value||'';
+}
+
+// ── Actualizar contador ──────────────────────────────────────
+function updateItemCount(p){
+  const n = itemState[p].length;
+  document.getElementById(p+'ItemsCount').textContent = n+' / '+MAX_ITEMS+' ítem'+(n!==1?'s':'');
+  const btn = document.getElementById(p+'BtnAddItem');
+  if(btn) btn.disabled = n >= MAX_ITEMS;
+}
+
+// ── Cerrar dropdowns al hacer click fuera ────────────────────
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.item-mat-wrap')){
+    document.querySelectorAll('.item-drop').forEach(d=>d.classList.remove('open'));
+  }
+});
+
+// ════════════════════════════════════════════════════════════
+//  submitMulti: valida y guarda todos los ítems de la grilla
+// ════════════════════════════════════════════════════════════
+function submitMulti(p){
+  clrErr();
+  let ok = true;
+
+  // ── Validar campos comunes del encabezado ────────────────
+  if(p==='e'){
+    const docVal  = document.getElementById('eDoc').value.trim();
+    const valeVal = document.getElementById('eVale').value.trim();
+    if(!docVal && !valeVal){ showErr('eErrDoc','eDoc'); showErr('eErrVale','eVale'); ok=false; }
+    const procVal = document.getElementById('eProcedencia').value;
+    const areaVal = document.getElementById('eArea').value;
+    if(!procVal && !areaVal){ document.getElementById('eErrOrigen').classList.add('show'); ok=false; }
+    if(!document.getElementById('eRecib').value){ showErr('eErrRecib','eRecib'); ok=false; }
+    const eAutVal    = document.getElementById('eAutorizado').value;
+    const eAutManual = document.getElementById('eOtroAut').value.trim();
+    if(!eAutVal){ showErr('eErrAut','eAutorizado'); ok=false; }
+    else if(eAutVal==='__eautotro__' && !eAutManual){ showErr('eErrAut','eOtroAut'); ok=false; }
+  } else {
+    if(!document.getElementById('sArea').value){ showErr('sErrArea','sArea'); ok=false; }
+    if(!document.getElementById('sSector').value){ showErr('sErrSector','sSector'); ok=false; }
+    if(!document.getElementById('sFrente').value){ showErr('sErrFrente','sFrente'); ok=false; }
+    const solicVal   = document.getElementById('sSolic').value;
+    const solicManual= document.getElementById('sOtroSolic').value.trim();
+    if(!solicVal){ showErr('sErrSolic','sSolic'); ok=false; }
+    else if(solicVal==='__otro__' && !solicManual){ showErr('sErrSolic','sOtroSolic'); ok=false; }
+    if(!document.getElementById('sVale').value.trim()){ showErr('sErrVale','sVale'); ok=false; }
+    const autVal   = document.getElementById('sAutorizado').value;
+    const autManual= document.getElementById('sOtroAut').value.trim();
+    if(!autVal){ showErr('sErrAut','sAutorizado'); ok=false; }
+    else if(autVal==='__autotro__' && !autManual){ showErr('sErrAut','sOtroAut'); ok=false; }
+  }
+
+  // ── Validar ítems ────────────────────────────────────────
+  const items = itemState[p];
+  const validItems = items.filter(it=>{
+    const cant = parseFloat(document.getElementById(p+'ICant'+(items.indexOf(it)))?.value||'0');
+    return it.mat && cant > 0;
+  });
+  // Recolectar con índice real para poder leer los inputs
+  const validItemsFull = [];
+  items.forEach((it, idx)=>{
+    const cant = parseFloat(document.getElementById(p+'ICant'+idx)?.value||'0');
+    if(it.mat && cant > 0){
+      // Leer unidad seleccionada (puede ser selector o texto)
+      const selEl = document.getElementById(p+'IUnitSel'+idx);
+      const unidad = selEl ? selEl.value : (it.unidad || it.mat.unit);
+      validItemsFull.push({mat: it.mat, cant, unidad, idx});
+    }
+  });
+
+  if(!validItemsFull.length){
+    document.getElementById(p+'ErrMat').classList.add('show');
+    ok=false;
+  }
+
+  if(!ok) return;
+
+  // ── Guardar un registro por ítem ─────────────────────────
+  const arr = loadRegs();
+  const fecha = document.getElementById(p+'Fecha').value;
+  const hora  = document.getElementById(p+'Hora').value;
+
+  const getSolic = ()=> document.getElementById('sSolic').value==='__otro__'
+    ? document.getElementById('sOtroSolic').value.trim()
+    : document.getElementById('sSolic').value;
+  const getAut = ()=> document.getElementById('sAutorizado').value==='__autotro__'
+    ? document.getElementById('sOtroAut').value.trim()
+    : document.getElementById('sAutorizado').value;
+
+  const newRegs = [];
+  validItemsFull.forEach((item, i)=>{
+    // Conversión unidad
+    let cantFinal  = item.cant;
+    let unidadFinal= item.unidad;
+    let notaConv   = '';
+    const conv = getEdpConv(item.mat.code);
+    if(conv && conv.factor !== null){
+      const uBase = conv.edpUnit.toUpperCase();
+      const uAlm  = item.mat.unit.toUpperCase();
+      if(unidadFinal.toUpperCase() === uAlm && uAlm !== uBase){
+        cantFinal  = +(item.cant * conv.factor).toFixed(4);
+        notaConv   = `Orig: ${item.cant} ${uAlm} × ${conv.factor} = ${cantFinal} ${uBase}`;
+        unidadFinal= uBase;
+      }
+    }
+    const ts = Date.now() + i; // offset para IDs únicos
+    const reg = p==='e' ? {
+      id:ts, tipo:'ENTRADA',
+      fecha, hora,
+      codigo: item.mat.code,
+      material: item.mat.name,
+      unidad: unidadFinal,
+      cantidad: cantFinal,
+      notaConv,
+      documento: document.getElementById('eDoc').value.trim(),
+      procedencia: document.getElementById('eProcedencia').value,
+      area: document.getElementById('eArea').value,
+      sector: document.getElementById('eSector').value,
+      frente: document.getElementById('eFrente').value,
+      recibido: document.getElementById('eRecib').value,
+      vale: document.getElementById('eVale').value.trim(),
+      autorizado: document.getElementById('eAutorizado').value==='__eautotro__'
+        ? document.getElementById('eOtroAut').value.trim()
+        : document.getElementById('eAutorizado').value,
+      solicitante:'', entregado:'',
+      obs: document.getElementById('eObs').value.trim()
+    } : {
+      id:ts, tipo:'SALIDA',
+      fecha, hora,
+      codigo: item.mat.code,
+      material: item.mat.name,
+      unidad: unidadFinal,
+      cantidad: cantFinal,
+      notaConv,
+      documento:'', procedencia:'', recibido:'',
+      area: document.getElementById('sArea').value,
+      sector: document.getElementById('sSector').value,
+      frente: document.getElementById('sFrente').value,
+      solicitante: getSolic(),
+      vale: document.getElementById('sVale').value.trim(),
+      autorizado: getAut(),
+      entregado: document.getElementById('sEntreg').value,
+      obs: document.getElementById('sObs').value.trim()
+    };
+    newRegs.push(reg);
+  });
+
+  // Insertar al inicio (más recientes primero)
+  newRegs.reverse().forEach(r=> arr.unshift(r));
+  saveRegs(arr);
+  updateBadge();
+
+  showModalMulti(p, newRegs.reverse(), fecha, hora);
+}
+
+// ── Modal de confirmación multi-ítem ────────────────────────
+function showModalMulti(p, regs, fecha, hora){
+  const isE = p==='e';
+  document.getElementById('mIco').textContent = isE ? '📦' : '🚧';
+  document.getElementById('mIco').className   = 'modal-ico '+(isE?'e':'s');
+  document.getElementById('mTitle').textContent = isE
+    ? (regs.length>1 ? regs.length+' materiales ingresados' : 'Entrada registrada')
+    : (regs.length>1 ? regs.length+' materiales despachados' : 'Salida registrada');
+  document.getElementById('mSub').textContent = isE
+    ? 'Materiales ingresados al almacén correctamente.'
+    : 'Salida registrada correctamente.';
+
+  const docStr = isE
+    ? (document.getElementById('eDoc').value.trim() || document.getElementById('eVale').value.trim())
+    : document.getElementById('sVale').value.trim();
+
+  const lines = regs.map(r=>
+    `<b>[${r.codigo}]</b> ${r.material} — <b>${r.cantidad} ${r.unidad}</b>`+
+    (r.notaConv ? ` <span style="color:#7c3aed;font-size:10px">(${r.notaConv})</span>` : '')
+  ).join('<br>');
+
+  document.getElementById('mSum').innerHTML =
+    `<b>Tipo:</b> ${isE?'ENTRADA':'SALIDA'}&nbsp;·&nbsp;<b>Fecha:</b> ${fecha} ${hora}<br>`+
+    `<b>${isE?'Doc':'Vale'}:</b> ${docStr}<br><br>`+
+    lines;
+  document.getElementById('modalBg').classList.add('show');
+}
+
+// ── Override closeModal para resetear grilla ─────────────────
+const _origCloseModal = closeModal;
+window.closeModal = function(){
+  document.getElementById('modalBg').classList.remove('show');
+  resetFormMulti(tab);
+};
+
+function resetFormMulti(p){
+  // Reset campos comunes
+  const ep=document.getElementById('eProcedencia'); if(ep){ep.value='';ep.disabled=false;}
+  const eArea=document.getElementById('eArea'); if(eArea){eArea.value='';eArea.disabled=false;}
+  const eSec=document.getElementById('eSector'); if(eSec){eSec.innerHTML='<option value="">— Sector —</option>';eSec.disabled=true;}
+  const eFrt=document.getElementById('eFrente'); if(eFrt){eFrt.innerHTML='<option value="">— Frente —</option>';eFrt.disabled=true;}
+  const epl=document.getElementById('eProcLabel'); if(epl) epl.classList.remove('dim');
+  const eul=document.getElementById('eUbicLabel'); if(eul) eul.classList.remove('dim');
+  document.getElementById('eErrOrigen').classList.remove('show');
+  const ev=document.getElementById('eVale'); if(ev){ev.value='';ev.disabled=false;}
+  const edoc=document.getElementById('eDoc'); if(edoc){edoc.value='';edoc.disabled=false;}
+  const edl=document.getElementById('eDocLabel'); if(edl) edl.classList.remove('dim');
+  const evl=document.getElementById('eValeLabel'); if(evl) evl.classList.remove('dim');
+  const ea=document.getElementById('eAutorizado'); if(ea) ea.value='';
+  const eaw=document.getElementById('eOtroAutWrap'); if(eaw) eaw.style.display='none';
+  const eoa=document.getElementById('eOtroAut'); if(eoa) eoa.value='';
+  const voe=document.getElementById('valeOkE'); if(voe) voe.classList.add('hidden');
+  const er=document.getElementById('eRecib'); if(er) er.value='';
+  const eobs=document.getElementById('eObs'); if(eobs) eobs.value='';
+
+  const sa=document.getElementById('sArea'); if(sa){sa.value='';updateSectores();}
+  const ss=document.getElementById('sSolic'); if(ss) ss.value='';
+  const sw=document.getElementById('sOtroSolicWrap'); if(sw) sw.style.display='none';
+  const os=document.getElementById('sOtroSolic'); if(os) os.value='';
+  const sA=document.getElementById('sAutorizado'); if(sA) sA.value='';
+  const aw=document.getElementById('sOtroAutWrap'); if(aw) aw.style.display='none';
+  const oa=document.getElementById('sOtroAut'); if(oa) oa.value='';
+  const sv=document.getElementById('sVale'); if(sv) sv.value='';
+  const se=document.getElementById('sEntreg'); if(se) se.value='';
+  const vo=document.getElementById('valeOk'); if(vo) vo.classList.add('hidden');
+  const sobs=document.getElementById('sObs'); if(sobs) sobs.value='';
+
+  setNow('e'); setNow('s');
+  clrErr();
+
+  // Reiniciar grillas
+  initItemRows('e');
+  initItemRows('s');
+}
+
+// ── Inicializar al arrancar ──────────────────────────────────
+initItemRows('e');
+initItemRows('s');
+
+</script>
+</body>
+</html>
