@@ -201,6 +201,17 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 .btn-add-item{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border:1.5px dashed #9ca3af;border-radius:var(--radius);font-size:12px;font-weight:600;color:#6b7280;cursor:pointer;background:#fff;transition:all .15s;margin:4px 0 2px}
 .btn-add-item:hover{border-color:var(--blue-mid);color:var(--blue-mid);background:#f0f7ff}
 .items-count{font-size:11px;color:#9ca3af;text-align:right;margin-bottom:4px}
+.item-add-new{font-size:10.5px;color:var(--amber);cursor:pointer;margin-top:4px;font-weight:600}
+.item-add-new:hover{text-decoration:underline}
+.item-manual-wrap{background:#fffbeb;border:1.5px dashed var(--amber);border-radius:8px;padding:8px}
+.item-manual-wrap input{width:100%;padding:7px 9px;font-size:11.5px;border:1.5px solid var(--border);border-radius:6px;margin-bottom:5px;color:var(--gray);background:#fff;outline:none}
+.item-manual-wrap input:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,158,11,.12)}
+.item-manual-actions{display:flex;gap:6px}
+.item-manual-ok{flex:1;padding:7px;font-size:11px;font-weight:700;border:none;border-radius:6px;background:var(--amber);color:#fff;cursor:pointer}
+.item-manual-ok:hover{opacity:.87}
+.item-manual-cancel{padding:7px 10px;font-size:11px;font-weight:600;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:#6b7280;cursor:pointer}
+.item-manual-cancel:hover{border-color:var(--red);color:var(--red)}
+.item-new-badge{background:var(--amber);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;flex-shrink:0}
 
 </style>
 </head>
@@ -280,6 +291,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
           <option>3000</option>
           <option>4000</option>
           <option>5800</option>
+          <option>SIN ÁREA</option>
         </select>
         <select id="eSector" onchange="updateEFrentes()" disabled style="margin-bottom:6px">
           <option value="">— Sector —</option>
@@ -354,6 +366,7 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
         <option>3000</option>
         <option>4000</option>
         <option>5800</option>
+        <option>SIN ÁREA</option>
       </select>
       <div class="err" id="sErrArea">Selecciona el área.</div>
     </div>
@@ -917,12 +930,16 @@ const UBICACIONES={
     'Poza PC':['Poza PC 002','POZA PC-003','ACCESO POZA PC-003'],
     'VIA MAR II':['ZCM08','ZCM09','ZCM06','ZCM05','ZCM03','ZCM02','ZCM01'],
     'Mantenimiento MAR II':['VM_M-10','VM_M-5','VM_M-4','VM_M-1','VM_M-16','VM_M-8','VM_M-6','VM_M-9','VM_M-13','VM_M-12','VM_M-7','VM_M-3'],
+    'DM2':['DM2'],
   },
   '4000':{
     'Sala Electrica':['PLATAFORMA SALA ELECTRICA','PLATAFORMA DE OPERACIONES'],
     },
   '5800':{
     'Mantenimiento MAR II':['VM_M-2'],
+  },
+  'SIN ÁREA':{
+    'Trabajos Extra':['Trabajos Extra (sin área asignada)'],
   },
 };
 
@@ -1777,10 +1794,25 @@ function compartirStockWSP(){
     porCat[cat].push({ name: d.name, qty, unidad });
   });
 
+  // Alertas de stock mínimo (BAJO o SIN STOCK)
+  const alertas = data.filter(d => d.estado === 'BAJO' || d.estado === 'SIN STOCK')
+    .sort((a,b)=> (a.estado===b.estado ? 0 : (a.estado==='SIN STOCK' ? -1 : 1)));
+
   let lineas = [];
   lineas.push('📦 *STOCK DISPONIBLE – ALMACÉN TALUD*');
   lineas.push(`📅 ${fecha}  🕐 ${hora}`);
   lineas.push('─────────────────────────');
+
+  if(alertas.length){
+    lineas.push('🚨 *ALERTAS DE STOCK*');
+    alertas.forEach(d => {
+      const icono = d.estado === 'SIN STOCK' ? '⛔' : '⚠️';
+      const stockTxt = parseFloat(d.stockActual.toFixed(2)).toLocaleString('es-PE');
+      const minTxt = parseFloat(d.stockMinimo.toFixed(2)).toLocaleString('es-PE');
+      lineas.push(`  ${icono} ${d.name}: *${stockTxt} ${d.unit}* (mín: ${minTxt} ${d.unit}) — ${d.estado}`);
+    });
+    lineas.push('─────────────────────────');
+  }
 
   Object.keys(porCat).sort().forEach(cat => {
     lineas.push(`\n*${cat}*`);
@@ -1962,7 +1994,7 @@ function initItemRows(p){
 function addItemRow(p){
   if(itemState[p].length >= MAX_ITEMS) return;
   const idx = itemState[p].length;
-  itemState[p].push({mat:null, cant:'', unidad:''});
+  itemState[p].push({mat:null, cant:'', unidad:'', manual:false});
   const wrap = document.getElementById(p+'ItemsWrap');
   const row = document.createElement('div');
   row.className = 'item-row';
@@ -1985,6 +2017,16 @@ function buildRowHTML(p, idx){
         onfocus="openItemDrop('${p}',${idx})"/>
       <div class="item-drop" id="${p}IDrop${idx}"></div>
       <div id="${p}ISelWrap${idx}" style="display:none;margin-top:4px"></div>
+      <div class="item-add-new" id="${p}IAddNew${idx}" onclick="toggleManualRow('${p}',${idx})">✎ No está en la lista — agregar material nuevo</div>
+      <div class="item-manual-wrap" id="${p}IManualWrap${idx}" style="display:none;margin-top:4px">
+        <input type="text" id="${p}IManCode${idx}" placeholder="Código (opcional, se autogenera)"/>
+        <input type="text" id="${p}IManName${idx}" placeholder="Nombre del material *"/>
+        <input type="text" id="${p}IManUnit${idx}" placeholder="Unidad (UND, M2, KG…) *"/>
+        <div class="item-manual-actions">
+          <button type="button" class="item-manual-ok" onclick="confirmManualMat('${p}',${idx})">✔ Usar material</button>
+          <button type="button" class="item-manual-cancel" onclick="cancelManualRow('${p}',${idx})">✕</button>
+        </div>
+      </div>
     </div>
     <input class="item-cant" id="${p}ICant${idx}" type="number" min="0.001" step="0.001" placeholder="0"
       oninput="onCantChange('${p}',${idx})"/>
@@ -2015,19 +2057,23 @@ function renderAllRows(p){
     row.innerHTML = buildRowHTML(p, i);
     wrap.appendChild(row);
     // Restaurar material seleccionado si había
-    if(saved[i].mat) restoreItemSel(p, i, saved[i].mat, saved[i].unidad);
+    if(saved[i].mat) restoreItemSel(p, i, saved[i].mat, saved[i].unidad, saved[i].manual);
     if(saved[i].cant) document.getElementById(p+'ICant'+i).value = saved[i].cant;
   });
   updateItemCount(p);
 }
 
-function restoreItemSel(p, idx, mat, unidad){
+function restoreItemSel(p, idx, mat, unidad, isNew){
   const selWrap = document.getElementById(p+'ISelWrap'+idx);
   const searchEl = document.getElementById(p+'ISearch'+idx);
   const matWrap  = document.getElementById(p+'IMatWrap'+idx);
+  const addNew   = document.getElementById(p+'IAddNew'+idx);
+  const manWrap  = document.getElementById(p+'IManualWrap'+idx);
   selWrap.style.display = 'block';
   searchEl.style.display = 'none';
-  selWrap.innerHTML = buildSelBadge(p, idx, mat);
+  if(addNew) addNew.style.display='none';
+  if(manWrap) manWrap.style.display='none';
+  selWrap.innerHTML = buildSelBadge(p, idx, mat, isNew);
   // Restore unit
   const unitWrap = document.getElementById(p+'IUnitWrap'+idx);
   const conv = getEdpConv(mat.code);
@@ -2080,9 +2126,12 @@ function pickItemMat(p, idx, code){
   const unitWrap= document.getElementById(p+'IUnitWrap'+idx);
 
   drop.classList.remove('open');
+  itemState[p][idx].manual = false;
   selWrap.innerHTML = buildSelBadge(p, idx, m);
   selWrap.style.display = 'block';
   searchEl.style.display = 'none';
+  const addNew = document.getElementById(p+'IAddNew'+idx);
+  if(addNew) addNew.style.display = 'none';
 
   // Unidad
   const conv = getEdpConv(m.code);
@@ -2100,10 +2149,11 @@ function pickItemMat(p, idx, code){
   document.getElementById(p+'ErrMat').classList.remove('show');
 }
 
-function buildSelBadge(p, idx, m){
+function buildSelBadge(p, idx, m, isNew){
   return `<div class="item-sel-badge" onclick="clearItemMat('${p}',${idx})">
     <span class="icode">${m.code}</span>
     <span class="iname">${m.name}</span>
+    ${isNew ? '<span class="item-new-badge">NUEVO</span>' : ''}
     <span class="clr">✕</span>
   </div>`;
 }
@@ -2120,15 +2170,87 @@ function buildUnitSelect(p, idx, almUnit, edpUnit, currentVal){
 function clearItemMat(p, idx){
   itemState[p][idx].mat = null;
   itemState[p][idx].unidad = '';
+  itemState[p][idx].manual = false;
   const selWrap = document.getElementById(p+'ISelWrap'+idx);
   const searchEl= document.getElementById(p+'ISearch'+idx);
   const unitWrap= document.getElementById(p+'IUnitWrap'+idx);
+  const addNew  = document.getElementById(p+'IAddNew'+idx);
+  const manWrap = document.getElementById(p+'IManualWrap'+idx);
   selWrap.style.display = 'none';
   selWrap.innerHTML = '';
   searchEl.style.display = 'block';
   searchEl.value = '';
+  if(addNew) addNew.style.display='block';
+  if(manWrap) manWrap.style.display='none';
   unitWrap.innerHTML = `<div class="item-unit" id="${p}IUnitTxt${idx}">—</div>`;
   searchEl.focus();
+}
+
+// ── Agregar material nuevo (no está en el catálogo) ───────────
+function slugCode(name){
+  let base = name.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Z0-9]+/g,'.').replace(/^\.+|\.+$/g,'').slice(0,24);
+  return base || 'MATERIAL';
+}
+function uniqueManualCode(name){
+  const catalog = buildStockCatalog();
+  const base = slugCode(name);
+  let code = base, n = 1;
+  while(catalog[code] || MATS.some(m=>m.code===code)){
+    n++; code = base+'.'+n;
+  }
+  return code;
+}
+function toggleManualRow(p, idx){
+  document.getElementById(`${p}IManualWrap${idx}`).style.display = 'block';
+  document.getElementById(`${p}IAddNew${idx}`).style.display = 'none';
+  const search = document.getElementById(`${p}ISearch${idx}`);
+  if(search){ search.style.display='none'; search.value=''; }
+  document.getElementById(`${p}IDrop${idx}`).classList.remove('open');
+  setTimeout(()=>{ const el=document.getElementById(`${p}IManName${idx}`); if(el) el.focus(); }, 60);
+}
+function cancelManualRow(p, idx){
+  document.getElementById(`${p}IManualWrap${idx}`).style.display = 'none';
+  document.getElementById(`${p}IAddNew${idx}`).style.display = 'block';
+  const search = document.getElementById(`${p}ISearch${idx}`);
+  if(search) search.style.display = 'block';
+  ['IManCode','IManName','IManUnit'].forEach(f=>{
+    const el = document.getElementById(`${p}${f}${idx}`); if(el) el.value='';
+  });
+}
+function confirmManualMat(p, idx){
+  const name = document.getElementById(`${p}IManName${idx}`).value.trim();
+  const unit = document.getElementById(`${p}IManUnit${idx}`).value.trim().toUpperCase();
+  let code   = document.getElementById(`${p}IManCode${idx}`).value.trim().toUpperCase();
+  if(!name || !unit){
+    alert('Ingresa nombre y unidad del material nuevo.');
+    return;
+  }
+  if(!code){
+    code = uniqueManualCode(name);
+  } else {
+    const catalog = buildStockCatalog();
+    if(catalog[code] || MATS.some(m=>m.code===code)){
+      alert('Ese código ya existe en el catálogo. Déjalo vacío para generar uno automático, o usa el buscador para seleccionar el material existente.');
+      return;
+    }
+  }
+  const m = {code, name, unit, cat:'OTROS (nuevo)'};
+  itemState[p][idx].mat = m;
+  itemState[p][idx].unidad = unit;
+  itemState[p][idx].manual = true;
+
+  const selWrap = document.getElementById(`${p}ISelWrap${idx}`);
+  selWrap.innerHTML = buildSelBadge(p, idx, m, true);
+  selWrap.style.display = 'block';
+  document.getElementById(`${p}IManualWrap${idx}`).style.display = 'none';
+  document.getElementById(`${p}IAddNew${idx}`).style.display = 'none';
+
+  const unitWrap = document.getElementById(`${p}IUnitWrap${idx}`);
+  unitWrap.innerHTML = `<div class="item-unit" id="${p}IUnitTxt${idx}">${unit}</div>`;
+
+  setTimeout(()=>{ const c=document.getElementById(`${p}ICant${idx}`); if(c) c.focus(); }, 60);
+  document.getElementById(p+'ErrMat').classList.remove('show');
 }
 
 function onCantChange(p, idx){
